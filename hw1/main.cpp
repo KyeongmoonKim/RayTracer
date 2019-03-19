@@ -5,8 +5,10 @@
 //hiearachical modeling 
 GLfloat thetaBody;
 GLfloat thetaRA;
-//It doesn't display anything because the objtect is so far a
 
+/*
+	TODO : The transform matrix should be added before body.
+*/
 void drawBody() {
 	glColor3f(0.0, 0.0, 1.0);
 	glutSolidCube(3);
@@ -22,7 +24,7 @@ void drawHead() {
 }
 void drawArm() {
 	glPushMatrix();
-	glScalef(3.0, 1.0, 1.0);
+	glScalef(1.0, 3.0, 1.0);
 	glColor3f(1.0, 0.0, 0.0);
 	glutSolidCube(1);
 	glColor3f(0.0, 0.0, 0.0);
@@ -49,14 +51,14 @@ void human() {
 	glPopMatrix(); //from head node
 	glPushMatrix(); //to right shoulder joint
 		glTranslatef(1.5, 1.5, 0.0); //tranlate
-		glRotatef(-1 * getAlpha(-1/sqrt(2), -1/sqrt(2), 0.0), 1, 0, 0); 
-		glRotatef(-1 * getBeta(-1/sqrt(2), -1/sqrt(2), 0.0), 0, 1, 0); //part for transform right joint -> body
+		glRotatef(-1 * getAlpha(-1.0, 0.0, 0.0, 1), 1, 0, 0); 
+		glRotatef(-1 * getBeta(-1.0, 0.0, 0.0, 1), 0, 1, 0); //part for transform right joint -> body
+		std::cout << -1 * getAlpha(0.0, 0.0, 1, 0) << -1 * getAlpha(0, 0.0, 0.0, 1) << std::endl;
 		//right shoulder local cs
-
 		glPushMatrix(); //to right arm
-			glTranslatef(1.5, 0.0, 0.0);
-			glRotatef(-1 * getAlpha(0, 0, 1), 0, 0, 0);
-			glRotatef(-1 * getBeta(0, 0, 1), 0, 0, 0);
+			glTranslatef(0.0, -1.5, -0.5);
+			glRotatef(-1 * getAlpha(0, 0, 1, 0), 1, 0, 0);
+			glRotatef(-1 * getBeta(0, 0, 1, 0), 0, 1, 0);
 			//right arm cs
 			drawArm();
 		glPopMatrix(); //from  right arm
