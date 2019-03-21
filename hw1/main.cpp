@@ -3,9 +3,13 @@
 #include<iostream>
 #include"myTrans.h"
 //hiearachical modeling 
-GLfloat thetaBody;
-GLfloat thetaRA;
-
+GLfloat thetaRarm1 = 0.0;
+GLfloat thetaRarm3 = 0.0;
+GLfloat thetaRarm2 = 0.0;
+GLfloat move=0.1;
+GLint check1 = 1;
+GLint check2 = 1;
+GLint check3 = 1;
 /*
 	STATE : body and arm detach. rotating joint
 	TODO : The transform matrix should be added before body.
@@ -26,10 +30,11 @@ void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(2,3,4, 0,0,0, 0,1,0);
+	gluLookAt(4,4,4, 0,0,0, 0,1,0);
 	//start making world coordinate
 	glPushMatrix(); //to body edge
 	{
+		glTranslatef(0.0, 0.0, move);
 		myCube(1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 3.0);
 		//body local cs
 		glPushMatrix(); //to head edge
@@ -45,7 +50,8 @@ void human() {
 			glTranslatef(1.5, 1.5, 0.0);
 			glPushMatrix();
 			{//for arm1
-				glRotatef(0.0, 0.0, 0.0, 1.0); //arm1 up-down rotation will be happen
+				glRotatef(thetaRarm1, 0.0, 0.0, 1.0); //arm1 up-down rotation will be happen
+				glRotatef(thetaRarm3, 0.0, 1.0, 0.0);
 				glTranslatef(0.75, 0.0, 0.0);
 				glRotatef(90.0, 0.0, 0.0, 1.0); //transform coordinates
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0); 
@@ -54,7 +60,7 @@ void human() {
 					glTranslatef(0.0, -0.75, 0.0);
 					glPushMatrix();
 					{//for arm2
-						glRotatef(90, 0, 0, 1);
+						glRotatef(thetaRarm2, 0, 0, 1);
 						glTranslatef(0.0, -0.75, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
@@ -69,6 +75,24 @@ void human() {
 	}
 	glPopMatrix();
 	glutSwapBuffers();
+}
+unsigned timeStep = 75;
+void timer(int unUsed) {
+	thetaRarm1 += 15 * check1;
+	thetaRarm2 += 10 * check2;
+	thetaRarm3 += 5 * check3;
+	if(thetaRarm1 == 90) {
+		check1 = -1;
+	} else if(thetaRarm1 == 0) {
+		check1 = 1;
+	}
+	move += 0.1;
+	if(thetaRarm2 == 90) check2 = -1;	
+	else if(thetaRarm2 == 0) check2 = 1;
+	if(thetaRarm3 == 45) check3 = -1;
+	else if(thetaRarm3 == -90) check3 = 1;
+	glutPostRedisplay();
+	glutTimerFunc(timeStep, timer, 0);
 }
 
 int main(int argc, char** argv) {
@@ -85,5 +109,6 @@ int main(int argc, char** argv) {
 	glMatrixMode(GL_PROJECTION);
 	glFrustum(-3, 3, -3, 3, 1, 20);
 	glutDisplayFunc(human);
+	glutTimerFunc(timeStep, timer, 0);
 	glutMainLoop();
 }
