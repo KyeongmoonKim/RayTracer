@@ -4,28 +4,19 @@
 #include"myTrans.h"
 #define PI 3.14159265
 //hiearachical modeling 
-int frame;//ready for jump
-int frame2;//arise
-int frame3;//downfall
-double leg1Angle;
-double leg2Angle;
+
 double leg1Move;
 double leg2Move;
 int counter;
-int counter2;
 double bodyMove;
 double bodyMove2;
 double bodyMove3;
-double lArm1Angle;
-double lArm2Angle;
-double rArm1Angle;
-double rArm2Angle;
 double ll1Move;
 double ll2Move;
 double rl1Move;
 double rl2Move;
-double v0;
-double g;
+GLfloat ll1v1[3];
+GLfloat rl1v1[3];
 /*
 	STATE : body and arm detach. rotating joint
 	TODO : The transform matrix should be added before body.
@@ -51,25 +42,18 @@ void mySphere(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat 
 
 
 void diffInit() {
-	leg1Angle = 60;
-	leg2Angle = 120;
-	lArm1Angle = 90;
-	rArm1Angle = 90;
-	frame = 100;
-	frame2 = 100;
-	frame3 = 100;
-	v0 = 80.0 / (double)frame2;
-	g = v0 / (double)frame2;
 	counter = 1;
 	bodyMove = 0.0;
 	bodyMove2 = 0.0;
 	bodyMove3 = 0.0;
+	ll1Move = 0.0;
+	rl1Move = 0.0;
 }
 void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(0, 20, 10, 0,20,0, 0,1,0);
+	gluLookAt(8, 20, 8, 0,20,0, 0,1,0);
 	//start making world coordinate
 	glColor3f(0.5, 0.5, 0.5);
 	glPushMatrix();
@@ -113,11 +97,11 @@ void human() {
 		}
 		glPopMatrix(); //from head node
 		glPushMatrix(); //to right shoulder joint
-		{//for rightshoulder 
+		{//left shoulder 
 			glTranslatef(1.0, 0.75, 0.25);
 			glPushMatrix();
 			{//for arm1
-				glRotatef(-1*rl1Move, 0.0, 1.0, 0.0); //arm1 up-down rotation will be happen
+				glRotatef(-1*ll1Move, ll1v1[0], ll1v1[1], ll1v1[2]); //arm1 up-down rotation will be happen
 				glTranslatef(0.75, 0.0, -0.25);
 				glRotatef(90.0, 0.0, 0.0, 1.0); //transform coordinates
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0); 
@@ -140,11 +124,11 @@ void human() {
 		}
 		glPopMatrix(); // from right shoulder joint
 		glPushMatrix();
-		{//left shoulder
+		{//right shoulder
 			glTranslatef(-1, 0.75, 0.25);
 			glPushMatrix();
 			{//for leftArm1
-				glRotatef(ll1Move, 0.0, 1.0, 0.0);
+				glRotatef(rl1Move, rl1v1[0], rl1v1[1], rl1v1[2]);
 				glTranslatef(-0.75, 0.0, -0.25);
 				glRotatef(90.0, 0.0, 0.0, 1.0);//tranform coordinate
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0);
@@ -228,27 +212,51 @@ void human() {
 	glPopMatrix();
 	glutSwapBuffers();
 }
+
+void legAni(int counter) {
+	if(counter <= 100) {
+		leg1Move = counter * 60.0 / 100.0;
+		leg2Move = counter * 120.0 / 100.0;
+	} else if(counter <= 110) {
+		leg1Move = 60.0 - (counter-100) * 60.0 / 10.0;
+		leg2Move = 120.0 - (counter-100) * 120.0 / 10.0;
+	}
+}
+void bodyAni(int counter) {
+	if(counter <= 100) {
+		double theta1 = counter * 60.0 / 100.0;
+		double theta2 = counter * 120.0 / 100.0;
+		bodyMove = 3 * cos(theta1*PI/180)+sin(theta1*PI/180);
+		bodyMove += sin((theta2-theta1)*PI/180)+3*cos((theta2-theta1)*PI/180)-6;
+	} else if(counter <= 200) {
+		double temp = (double)(counter-100);
+		double v0 = 100.0/100.0;
+		double g = v0/100.0;
+		bodyMove2 = (2 * v0 - g * temp) * temp/2;
+	} else if(counter <= 300) {
+		double temp = (double)(counter-200);
+		double v0 = 100.0/100.0;
+		double g = v0/100.0;
+		bodyMove3 = g * temp * temp/2;
+	}
+}
+void armAni(int counter) {
+	if(counter <= 100) {
+		ll1v1[0] = 0.0; ll1v1[1] = 1.0; ll1v1[2] = 0.0;
+		rl1v1[0] = 0.0; rl1v1[1] = 1.0; rl1v1[2] = 0.0;
+		ll1Move = counter * 90.0 / 100.0;
+		rl1Move = counter * 90.0 / 100.0;
+	} else if(counter <= 110) {
+		ll1Move = 90.0;
+		rl1Move = 90.0;
+	}
+}
 unsigned timeStep = 20;
 void timer(int unUsed) {
-	if(counter <= frame) {
-		leg1Move =  counter * leg1Angle / frame;
-		leg2Move =  counter * leg2Angle / frame;
-		bodyMove = 3 * cos(leg1Move * PI /180) + sin(leg1Move * PI/180);
-		bodyMove += sin((leg2Move-leg1Move)*PI/180) + 3 * cos((leg2Move-leg1Move)*PI/180)-6;
-		rl1Move = counter * rArm1Angle / frame;
-		ll1Move = counter * lArm1Angle / frame;
-		counter++;
-	} else if(counter <= frame+frame2) {
-		double temp = (counter-frame);
-		bodyMove2 = (v0 + v0 - g * temp) * temp / 2;
-		counter++;
-	} else if(counter <= frame+frame2+frame3) {
-		double temp = (double)(counter-frame-frame2);
-		bodyMove3 = g * temp * temp /2;
-		counter++;
-	} else {
-		diffInit();
-	}
+	legAni(counter);
+	bodyAni(counter);
+	armAni(counter);
+	if(counter<=300) counter++;
 	glutPostRedisplay();
 	glutTimerFunc(timeStep, timer, 0);
 }
