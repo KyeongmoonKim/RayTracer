@@ -14,6 +14,8 @@ double leg2Move;
 int counter;
 int counter2;
 double bodyMove;
+double bodyMove2;
+double bodyMove3;
 double lArm1Angle;
 double lArm2Angle;
 double rArm1Angle;
@@ -22,6 +24,8 @@ double ll1Move;
 double ll2Move;
 double rl1Move;
 double rl2Move;
+double v0;
+double g;
 /*
 	STATE : body and arm detach. rotating joint
 	TODO : The transform matrix should be added before body.
@@ -53,18 +57,36 @@ void diffInit() {
 	rArm1Angle = 90;
 	frame = 100;
 	frame2 = 100;
+	frame3 = 100;
+	v0 = 80.0 / (double)frame2;
+	g = v0 / (double)frame2;
 	counter = 1;
+	bodyMove = 0.0;
+	bodyMove2 = 0.0;
+	bodyMove3 = 0.0;
 }
 void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(4, 5, 6, 0,0,0, 0,1,0);
+	gluLookAt(0, 20, 10, 0,20,0, 0,1,0);
 	//start making world coordinate
-	glColor3f(0.0, 0.0, 0.0);
+	glColor3f(0.5, 0.5, 0.5);
+	glPushMatrix();
+	{
+		glBegin(GL_POLYGON);
+			glVertex3f(500, -8, 500);
+			glVertex3f(500, -8, -500);
+			glVertex3f(-500, -8, -500);
+			glVertex3f(-500, -8, 500);
+		glEnd();
+		glColor3f(0.88235, 0.94118, 0.85490);
+		glutSolidCube(500);
+	}
+	glPopMatrix();
 	glPushMatrix();
 	{//human
-		glTranslatef(0.0, bodyMove, 0.0);
+		glTranslatef(0.0, bodyMove+bodyMove2-bodyMove3, 0.0);
 		myCube(1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 2.0);
 		//body local cs
 		glPushMatrix(); //to head edge
@@ -206,7 +228,7 @@ void human() {
 	glPopMatrix();
 	glutSwapBuffers();
 }
-unsigned timeStep = 30;
+unsigned timeStep = 20;
 void timer(int unUsed) {
 	if(counter <= frame) {
 		leg1Move =  counter * leg1Angle / frame;
@@ -217,9 +239,15 @@ void timer(int unUsed) {
 		ll1Move = counter * lArm1Angle / frame;
 		counter++;
 	} else if(counter <= frame+frame2) {
+		double temp = (counter-frame);
+		bodyMove2 = (v0 + v0 - g * temp) * temp / 2;
+		counter++;
 	} else if(counter <= frame+frame2+frame3) {
+		double temp = (double)(counter-frame-frame2);
+		bodyMove3 = g * temp * temp /2;
+		counter++;
 	} else {
-		counter = 0;
+		diffInit();
 	}
 	glutPostRedisplay();
 	glutTimerFunc(timeStep, timer, 0);
@@ -238,7 +266,7 @@ int main(int argc, char** argv) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
-	glFrustum(-3, 3, -3, 3, 1, 20);
+	glFrustum(-3, 3, -3, 3, 1, 1000);
 	glutDisplayFunc(human);
 	glutTimerFunc(timeStep, timer, 0);
 	glutMainLoop();
