@@ -4,24 +4,13 @@
 #include"myTrans.h"
 #define PI 3.14159265
 //hiearachical modeling 
-int frame;//ready for jump
-int frame2;//arise
-int frame3;//downfall
+int frame;
 double leg1Angle;
 double leg2Angle;
 double leg1Move;
 double leg2Move;
 int counter;
-int counter2;
 double bodyMove;
-double lArm1Angle;
-double lArm2Angle;
-double rArm1Angle;
-double rArm2Angle;
-double ll1Move;
-double ll2Move;
-double rl1Move;
-double rl2Move;
 /*
 	STATE : body and arm detach. rotating joint
 	TODO : The transform matrix should be added before body.
@@ -49,17 +38,14 @@ void mySphere(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat 
 void diffInit() {
 	leg1Angle = 60;
 	leg2Angle = 120;
-	lArm1Angle = 90;
-	rArm1Angle = 90;
 	frame = 100;
-	frame2 = 100;
 	counter = 1;
 }
 void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(4, 5, 6, 0,0,0, 0,1,0);
+	gluLookAt(3, 3, 3, 0,0,0, 0,1,0);
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -76,7 +62,7 @@ void human() {
 			glPushMatrix();
 			{//eye space
 				glBegin(GL_QUADS);
-					glColor3f(0.0, 0.0, 0.0);
+					glColor3f(1.0, 1.0, 1.0);
 					glVertex3f(0.4, 0.1, 0.0);
 					glVertex3f(0.4, 0.4, 0.0);
 					glVertex3f(0.1, 0.4, 0.0);
@@ -91,22 +77,23 @@ void human() {
 		}
 		glPopMatrix(); //from head node
 		glPushMatrix(); //to right shoulder joint
-		{//for rightshoulder 
-			glTranslatef(1.0, 0.75, 0.25);
+		{//for rightshoulder
+			//glRotatef(45, 0.0, 0.0, 1.0); //parent rotate children using parent's 
+			glTranslatef(1, 1, 0.0);
 			glPushMatrix();
 			{//for arm1
-				glRotatef(-1*rl1Move, 0.0, 1.0, 0.0); //arm1 up-down rotation will be happen
-				glTranslatef(0.75, 0.0, -0.25);
+				glRotatef(-45.0, 0.0, 0.0, 1.0); //arm1 up-down rotation will be happen
+				glTranslatef(0.75, 0.0, 0.0);
 				glRotatef(90.0, 0.0, 0.0, 1.0); //transform coordinates
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0); 
 				glPushMatrix();
 				{//for arm1-2 joint
-					glTranslatef(0.0, -0.75, 0.25);
+					glTranslatef(0.0, -0.75, 0.0);
 					glPushMatrix();
 					{//for arm2
-						//glRotatef(90, 0, 0, 1);
-						//glRotatef(-90, 1, 0, 0);
-						glTranslatef(0.0, -0.75, -0.25);
+						glRotatef(90, 0, 0, 1);
+						glRotatef(-90, 1, 0, 0);
+						glTranslatef(0.0, -0.75, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
 					glPopMatrix();
@@ -119,21 +106,21 @@ void human() {
 		glPopMatrix(); // from right shoulder joint
 		glPushMatrix();
 		{//left shoulder
-			glTranslatef(-1, 0.75, 0.25);
+			glTranslatef(-1, 1, 0.0);
 			glPushMatrix();
 			{//for leftArm1
-				glRotatef(ll1Move, 0.0, 1.0, 0.0);
-				glTranslatef(-0.75, 0.0, -0.25);
+				glRotatef(45, 0.0, 0.0, 1.0);
+				glTranslatef(-0.75, 0.0, 0.0);
 				glRotatef(90.0, 0.0, 0.0, 1.0);//tranform coordinate
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0);
 				glPushMatrix();
 				{//Left arm 1-2 joint
-					glTranslatef(0.0, 0.75, 0.25);
+					glTranslatef(0.0, 0.75, 0.0);
 					glPushMatrix();
 					{
-						//glRotatef(90, 1, 0, 0);
-						//glRotatef(-90, -1, 0, 0);
-						glTranslatef(0.0, 0.75, -0.25);
+						glRotatef(90, 0, 0, -1);
+						glRotatef(-90, -1, 0, 0);
+						glTranslatef(0.0, 0.75, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
 					glPopMatrix();
@@ -212,14 +199,9 @@ void timer(int unUsed) {
 		leg1Move =  counter * leg1Angle / frame;
 		leg2Move =  counter * leg2Angle / frame;
 		bodyMove = 3 * cos(leg1Move * PI /180) + sin(leg1Move * PI/180);
-		bodyMove += sin((leg2Move-leg1Move)*PI/180) + 3 * cos((leg2Move-leg1Move)*PI/180)-6;
-		rl1Move = counter * rArm1Angle / frame;
-		ll1Move = counter * lArm1Angle / frame;
+		bodyMove += sin((leg2Move-leg1Move)*PI/180) + 3 * cos((leg2Move-leg1Move)*PI/180);
+		bodyMove -= 6;
 		counter++;
-	} else if(counter <= frame+frame2) {
-	} else if(counter <= frame+frame2+frame3) {
-	} else {
-		counter = 0;
 	}
 	glutPostRedisplay();
 	glutTimerFunc(timeStep, timer, 0);
