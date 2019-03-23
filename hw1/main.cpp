@@ -138,11 +138,11 @@ void human() {
 				glTranslatef(0.0, -0.5, 0.0);
 				myCube(2.0, 1.0, 2.0, 1.0, 1.0, 0.0, 1.0);
 				glPushMatrix();
-				{//leg1-joint
-					glTranslatef(0.0, -0.5, 0.5);
+				{//right-leg1-joint
+					glTranslatef(0.5, -0.5, 0.5);
 					glRotatef(-1 * leg1Move, 1, 0, 0);
 					glPushMatrix();
-					{//leg
+					{//leg1
 						glTranslatef(0.0, -1.5, -0.5);
 						myCube(0.5, 3.0, 1, 1.0, 0.0, 0.0, 1.0);
 						glPushMatrix();
@@ -150,7 +150,7 @@ void human() {
 							glTranslatef(0.0, -1.5, -0.5);
 							glRotatef(leg2Move, 1, 0, 0);
 							glPushMatrix();
-							{
+							{//leg2
 								glTranslatef(0.0, -1.5, 0.5);
 								myCube(0.5, 3.0, 1, 0.0, 1.0, 0.0, 1.0);
 							}
@@ -162,7 +162,27 @@ void human() {
 				}
 				glPopMatrix();
 				glPushMatrix();
-				{//leg2
+				{//left-leg1-joint
+					glTranslatef(-0.5, -0.5, 0.5);
+					glRotatef(-1 * leg1Move, 1, 0, 0);
+					glPushMatrix();
+					{//leg1
+						glTranslatef(0.0, -1.5, -0.5);
+						myCube(0.5, 3.0, 1, 1.0, 0.0, 0.0, 1.0);
+						glPushMatrix();
+						{//leg2 joint
+							glTranslatef(0.0, -1.5, -0.5);
+							glRotatef(leg2Move, 1, 0, 0);
+							glPushMatrix();
+							{//leg2
+								glTranslatef(0.0, -1.5, 0.5);
+								myCube(0.5, 3.0, 1, 0.0, 1.0, 0.0, 1.0);
+							}
+							glPopMatrix();
+						}
+						glPopMatrix();
+					}
+					glPopMatrix();
 				}
 				glPopMatrix();
 			}
