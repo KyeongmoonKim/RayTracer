@@ -257,27 +257,7 @@ void armAni(int counter) {
 		ll2Move -= 0.4;
 		rl1Move -= 2.61;
 		rl2Move -= 0.4;
-	} else if(counter <= 150) {
-		ll1Move += 2.61;
-		ll2Move += 0.4;
-		rl1Move += 2.61;
-		rl2Move += 0.4;
-	} else if(counter <= 200) {
-		ll1Move -= 2.61;
-		ll2Move -= 0.4;
-		rl1Move -= 2.61;
-		rl2Move -= 0.4;
-	} else if(counter <= 250) {
-		ll1Move += 3.6;
-		ll2Move += acos(25.0/30.0)*180/(50.0*PI);
-		rl1Move += 3.6;
-		rl2Move += acos(25.0/30.0)*180/(50.0*PI);
-	} else if(counter <= 300) {
-		ll1Move -= 3.6;
-		ll2Move -= acos(25.0/30.0)*180/(50.0*PI);
-		rl1Move -= 3.6;
-		rl2Move -= acos(25.0/30.0)*180/(50.0*PI);
-	}
+	} 
 }
 unsigned timeStep = 20;
 void timer(int unUsed) {
