@@ -24,11 +24,22 @@ GLfloat rl1v1[3];
 
 void myCube(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat b, GLfloat len) {
 	glPushMatrix();
-	glScalef(sx, sy, sz);
-	glColor3f(r, g, b);
-	glutSolidCube(len);
-	glColor3f(0.0, 0.0, 0.0);
-	glutWireCube(len + 0.00001);
+	{
+		glScalef(sx, sy, sz);
+		glColor3f(r, g, b);
+		glutSolidCube(len);
+		glColor3f(0.0, 0.0, 0.0);
+		glutWireCube(len + 0.00001);
+	}
+	glPopMatrix();
+}
+
+void joint(GLfloat rad) {
+	glPushMatrix();
+	{
+		glColor3f(1.0, 1.0, 0.0);
+		glutSolidSphere(rad, 10, 10);
+	}
 	glPopMatrix();
 }
 
@@ -53,7 +64,7 @@ void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(50, 50, 50, 0,0,0, 0,1,0);
+	gluLookAt(50.0, 50.0, 50.0, 0,0,0, 0,1,0);
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -76,49 +87,56 @@ void human() {
 	glPopMatrix();
 	glPushMatrix();
 	{//human
-		glTranslatef(10.0, 8+bodyMove+bodyMove2-bodyMove3, 10.0);
-		myCube(1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 2.0);
+		glTranslatef(10.0, 11.0+bodyMove+bodyMove2-bodyMove3, 10.0);
+		myCube(1.0, 1.0, 0.5, 0.0, 0.0, 1.0, 2.0);
 		//body local cs
-		glPushMatrix(); //to head edge
-		{
-			glTranslatef(0.0, 1.5, 0.0); //from head coordinate to body coordinate
-			//head local cs
-			myCube(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0);
-			glTranslatef(0.0, 0.0, 0.5001);
+		glPushMatrix(); 
+		{//neck
+			glTranslatef(0.0, 1.5, 0.0);
+			joint(0.5);
 			glPushMatrix();
-			{//eye space
-				glBegin(GL_QUADS);
-					glColor3f(0.0, 0.0, 0.0);
-					glVertex3f(0.4, 0.1, 0.0);
-					glVertex3f(0.4, 0.4, 0.0);
-					glVertex3f(0.1, 0.4, 0.0);
-					glVertex3f(0.1, 0.1, 0.0);
-					glVertex3f(-0.1, 0.1, 0.0);
-					glVertex3f(-0.1, 0.4, 0.0);
-					glVertex3f(-0.4, 0.4, 0.0);
-					glVertex3f(-0.4, 0.1, 0.0);
-				glEnd();
+			{//head
+				glTranslatef(0.0, 1.0, 0.0); //from head coordinate to body coordinate
+				myCube(1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
+				glTranslatef(0.0, 0.0, 0.5001);
+				glPushMatrix();
+				{//eye space
+					glBegin(GL_QUADS);
+						glColor3f(0.0, 0.0, 0.0);
+						glVertex3f(0.4, 0.1, 0.0);
+						glVertex3f(0.4, 0.4, 0.0);
+						glVertex3f(0.1, 0.4, 0.0);
+						glVertex3f(0.1, 0.1, 0.0);
+						glVertex3f(-0.1, 0.1, 0.0);
+						glVertex3f(-0.1, 0.4, 0.0);
+						glVertex3f(-0.4, 0.4, 0.0);
+						glVertex3f(-0.4, 0.1, 0.0);
+					glEnd();
+				}
+				glPopMatrix();
 			}
 			glPopMatrix();
 		}
 		glPopMatrix(); //from head node
 		glPushMatrix(); //to right shoulder joint
 		{//left shoulder 
-			glTranslatef(1.0, 0.75, 0.25);
+			glTranslatef(1.5, 1.0, 0.0);
+			joint(0.5);
 			glPushMatrix();
 			{//for arm1
 				glRotatef(-1*ll1Move, ll1v1[0], ll1v1[1], ll1v1[2]); //arm1 up-down rotation will be happen
-				glTranslatef(0.75, 0.0, -0.25);
+				glTranslatef(1.25, 0.0, 0.0);
 				glRotatef(90.0, 0.0, 0.0, 1.0); //transform coordinates
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0); 
 				glPushMatrix();
 				{//for arm1-2 joint
-					glTranslatef(0.0, -0.75, 0.25);
+					glTranslatef(0.0, -1.25, 0.0);
+					joint(0.5);
 					glPushMatrix();
 					{//for arm2
 						//glRotatef(90, 0, 0, 1);
 						//glRotatef(-90, 1, 0, 0);
-						glTranslatef(0.0, -0.75, -0.25);
+						glTranslatef(0.0, -1.25, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
 					glPopMatrix();
@@ -131,21 +149,23 @@ void human() {
 		glPopMatrix(); // from right shoulder joint
 		glPushMatrix();
 		{//right shoulder
-			glTranslatef(-1, 0.75, 0.25);
+			glTranslatef(-1.5, 0.75, 0.0);
+			joint(0.5);
 			glPushMatrix();
 			{//for leftArm1
 				glRotatef(rl1Move, rl1v1[0], rl1v1[1], rl1v1[2]);
-				glTranslatef(-0.75, 0.0, -0.25);
+				glTranslatef(-1.25, 0.0, -0.0);
 				glRotatef(90.0, 0.0, 0.0, 1.0);//tranform coordinate
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0);
 				glPushMatrix();
 				{//Left arm 1-2 joint
-					glTranslatef(0.0, 0.75, 0.25);
+					glTranslatef(0.0, 1.25, 0.0);
+					joint(0.5);
 					glPushMatrix();
 					{
 						//glRotatef(90, 1, 0, 0);
 						//glRotatef(-90, -1, 0, 0);
-						glTranslatef(0.0, 0.75, -0.25);
+						glTranslatef(0.0, 1.25, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
 					glPopMatrix();
@@ -156,28 +176,31 @@ void human() {
 		}
 		glPopMatrix();
 		glPushMatrix();
-		{//legjoint
-			glTranslatef(0.0, -1.0, 0.0);
+		{//gobanjoint
+			glTranslatef(0.0, -1.5, 0.0);
+			joint(0.5);
 			glPushMatrix();
 			{//golban
-				glTranslatef(0.0, -0.5, 0.0);
-				myCube(2.0, 1.0, 2.0, 1.0, 1.0, 0.0, 1.0);
+				glTranslatef(0.0, -1.0, 0.0);
+				myCube(2.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
 				glPushMatrix();
 				{//right-leg1-joint
-					glTranslatef(0.5, -0.5, 0.5);
+					glTranslatef(0.5, -1.0, 0.0);
+					joint(0.5);
 					glRotatef(-1 * leg1Move, 1, 0, 0);
 					glPushMatrix();
 					{//leg1
-						glTranslatef(0.0, -1.5, -0.5);
-						myCube(0.5, 3.0, 1, 1.0, 0.0, 0.0, 1.0);
+						glTranslatef(0.0, -2.0, 0.0);
+						myCube(0.5, 3.0, 0.5, 1.0, 0.0, 0.0, 1.0);
 						glPushMatrix();
 						{//leg2 joint
-							glTranslatef(0.0, -1.5, -0.5);
+							glTranslatef(0.0, -2.0, 0.0);
+							joint(0.5);
 							glRotatef(leg2Move, 1, 0, 0);
 							glPushMatrix();
 							{//leg2
-								glTranslatef(0.0, -1.5, 0.5);
-								myCube(0.5, 3.0, 1, 0.0, 1.0, 0.0, 1.0);
+								glTranslatef(0.0, -2.0, 0.0);
+								myCube(0.5, 3.0, 0.5, 0.0, 1.0, 0.0, 1.0);
 							}
 							glPopMatrix();
 						}
@@ -188,20 +211,22 @@ void human() {
 				glPopMatrix();
 				glPushMatrix();
 				{//left-leg1-joint
-					glTranslatef(-0.5, -0.5, 0.5);
+					glTranslatef(-0.5, -1.0, 0.0);
+					joint(0.5);
 					glRotatef(-1 * leg1Move, 1, 0, 0);
 					glPushMatrix();
 					{//leg1
-						glTranslatef(0.0, -1.5, -0.5);
-						myCube(0.5, 3.0, 1, 1.0, 0.0, 0.0, 1.0);
+						glTranslatef(0.0, -2.0, 0.0);
+						myCube(0.5, 3.0, 0.5, 1.0, 0.0, 0.0, 1.0);
 						glPushMatrix();
 						{//leg2 joint
-							glTranslatef(0.0, -1.5, -0.5);
+							glTranslatef(0.0, -2.0, 0.0);
+							joint(0.5);
 							glRotatef(leg2Move, 1, 0, 0);
 							glPushMatrix();
 							{//leg2
-								glTranslatef(0.0, -1.5, 0.5);
-								myCube(0.5, 3.0, 1, 0.0, 1.0, 0.0, 1.0);
+								glTranslatef(0.0, -2.0, 0.0);
+								myCube(0.5, 3.0, 0.5, 0.0, 1.0, 0.0, 1.0);
 							}
 							glPopMatrix();
 						}
