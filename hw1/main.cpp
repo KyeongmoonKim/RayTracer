@@ -93,24 +93,17 @@ void initTemp() {
 }
 
 void initDiff() {
-	lleg1Move = 0.0;
-	lleg2Move = 0.0;
-	rleg1Move = 0.0;
-	rleg2Move = 0.0;
-	counter = 1;
+	counter = 0;
 	wheelMove = 0.0;
 	bodyMovex = 0.0;
 	bodyMovez = 0.0;
-	ll1Move = 0.0;
-	ll2Move = 0.0;
-	rl1Move = 0.0;
-	rl2Move = 0.0;
+	bodyAngle = -90.0;
 }
 void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(55.0, 55.0, 55.0, 0,0,0, 0,1,0);
+	gluLookAt(50.0, 50.0, 50.0, 0,0,0, 0,1,0);
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -336,61 +329,61 @@ void human() {
 }
 
 void legAni(int counter) {
-	if(counter <= 50) {
+	if(counter <= 49) {
 		lleg1Move += 1.8;
-	} else if(counter <= 100) {
+	} else if(counter <= 99) {
 		lleg1Move -= 1.8;
-	} else if(counter <= 150) {
+	} else if(counter <= 149) {
 		rleg1Move += 1.8; 
-	} else if(counter <= 200) {
+	} else if(counter <= 199) {
 		rleg1Move -= 1.8;
-	}
+	} 
 }
 void bodyAni(int counter) {
-	if(counter <= 300)
+	if(counter <= 299)
 		bodyMovex -= 1.0 * 4.0 * PI / 180; //l = r*theta, move per frame
-	else if(counter <= 400)
+	else if(counter <= 399)
 		bodyAngle -= 0.9;
-	else if(counter <= 700)
+	else if(counter <= 699)
 		bodyMovez -= 1.0 * 4.0 * PI / 180;
-	else if(counter <= 800)
+	else if(counter <= 799)
 		bodyAngle -= 0.9;
-	else if(counter <= 1100)
+	else if(counter <= 1099)
 		bodyMovex += 1.0 * 4.0 * PI / 180;
-	else if(counter <= 1200)
+	else if(counter <= 1199)
 		bodyAngle -=0.9;
-	else if(counter <= 1500)
+	else if(counter <= 1499)
 		bodyMovez += 1.0 * 4.0 * PI / 180;
-	else if(counter <= 1600)
+	else if(counter <= 1599)
 		bodyAngle -=0.9;
 }
 void armAni(int counter) {
-	if(counter <= 50) {
+	if(counter <= 49) {
 		ll1Move += 2.61;
 		ll2Move += 0.4;
 		rl1Move += 2.61;
 		rl2Move += 0.4;
-	} else if(counter <= 100) {
+	} else if(counter <= 99) {
 		ll1Move -= 2.61;
 		ll2Move -= 0.4;
 		rl1Move -= 2.61;
 		rl2Move -= 0.4;
-	} else if(counter <= 150) {
+	} else if(counter <= 149) {
 		ll1Move += 2.61;
 		ll2Move += 0.4;
 		rl1Move += 2.61;
 		rl2Move += 0.4;
-	} else if(counter <= 200) {
+	} else if(counter <= 199) {
 		ll1Move -= 2.61;
 		ll2Move -= 0.4;
 		rl1Move -= 2.61;
 		rl2Move -= 0.4;
-	} else if(counter <= 250) {
+	} else if(counter <= 249) {
 		ll1Move += 3.6;
 		ll2Move += acos(25.0/30.0)*180/(50.0*PI);
 		rl1Move += 3.6;
 		rl2Move += acos(25.0/30.0)*180/(50.0*PI);
-	} else if(counter <= 300) {
+	} else if(counter <= 299) {
 		ll1Move -= 3.6;
 		ll2Move -= acos(25.0/30.0)*180/(50.0*PI);
 		rl1Move -= 3.6;
@@ -400,7 +393,7 @@ void armAni(int counter) {
 void whAni(int counter) {
 	if(counter<=300) wheelMove += 4.0;
 }
-unsigned timeStep = 20;
+unsigned timeStep = 15;
 void timer(int unUsed) {
 	legAni(counter%400);
 	bodyAni(counter);
@@ -408,7 +401,7 @@ void timer(int unUsed) {
 	whAni(counter%400);
 	counter++;
 	if(counter==1600) initDiff();
-	else if(counter%400==0) initTemp();
+	if(counter%400==0) initTemp();
 	glutPostRedisplay();
 	glutTimerFunc(timeStep, timer, 0);
 }
@@ -433,7 +426,8 @@ int main(int argc, char** argv) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
-	//glFrustum(-3, 3, -3, 3, 1, 500);
+	initDiff();
+	initTemp();
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(human);
 	glutReshapeFunc(reShape);
