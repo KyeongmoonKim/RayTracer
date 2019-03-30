@@ -1,12 +1,15 @@
 #include<GL/glut.h>
 #include<math.h>
 #include"myTrans.h"
+#include<iostream>
 #define PI 3.14159265
 
 
 int counter;
 double bodyMovex;
 double bodyMovez;
+double rotX;
+double rotZ;
 double ll1MoveX;
 double ll1MoveY;
 double ll2MoveX;
@@ -16,6 +19,7 @@ double rl2Move;
 double wheelMove;
 double wheelMove2;
 double bodyAngle=0.0;
+double bodyTheta;
 double neckMove;
 double handleMove;
 
@@ -82,12 +86,13 @@ void initDiff() {
 	bodyMovex = 0.0;
 	bodyMovez = 0.0;
 	bodyAngle = 0.0;
+	bodyTheta = 180.0/101.0;
 }
 void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(90.0, 35.0, 90.0, 0.0, 0.0, 0.0,  0,1,0);
+	gluLookAt(50.0, 50.0, 50.0, 50.0, 0.0, 50.0,  1,0,0);
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -104,7 +109,7 @@ void human() {
 	glPopMatrix();
 	glPushMatrix();
 	{//human
-		glTranslatef(30.0+bodyMovex, 12.5, 30.0+bodyMovez);
+		glTranslatef(30.0+bodyMovex+rotX, 12.5, 30.0+bodyMovez+rotZ);
 		glRotatef(bodyAngle, 0.0, 1.0, 0.0);
 		myCube(1.0, 1.0, 0.5, 0.0, 0.0, 1.0, 2.0);
 		//body local cs
@@ -366,10 +371,29 @@ void human() {
 
 
 void bodyAni(int counter) {
-	if(counter <= 149)
-		bodyMovez += 1.0 * 4.0 * PI / 180; //l = r*theta, move per frame
-	//else if(counter <= 399)
-	//	bodyAngle -= 0.9;
+	if(counter <= 149) {
+		bodyMovez += 2.0 * 4.0 * PI / 180; //l = r*theta, move per frame
+	}
+	if(counter==250) {
+		bodyAngle = bodyTheta;
+		double d = 2.0 * 4.0 * PI /180;
+		rotX = d * sin(bodyAngle);
+		rotZ = d * cos(bodyAngle);
+	}
+	if(counter>250 && counter <=349) {
+		double d = 2.0 * 4.0 * PI / 180;
+		double currD = sqrt(rotX*rotX + rotZ*rotZ);
+		double temp1 = bodyAngle * PI / 180.0;
+		double temp2 = bodyAngle * PI / 180.0 + bodyTheta * PI / 360.0;
+		rotX = currD * sin(temp1) + d * sin(temp2);
+		rotZ = currD * cos(temp1) + d * cos(temp2);
+		bodyAngle += bodyTheta/2;
+		/*std::cout << bodyAngle <<std::endl;
+		std::cout << cos(temp1) << std::endl;
+		std::cout << cos(temp2)<< std::endl;
+		std::cout << rotX << " " << rotZ << std::endl;
+		std::cout << "end" << std::endl;*/
+	}
 }
 void armAni(int counter) {
 	if(counter <= 50&& counter >= 0) {
@@ -386,12 +410,13 @@ void neckAni(int counter) {
 }
 void haAni(int counter) {
 	if(counter >= 180 && counter <= 249) {
-		handleMove -= 3;
+		handleMove -= 1;
 	}
 }
 void whAni(int counter) {
 	if(counter <= 149) wheelMove += 4.0;
-	if(counter >= 180 && counter <= 249) wheelMove2 += 0.75; 
+	if(counter >= 180 && counter <= 249) wheelMove2 += 15.0/70.0; 
+	if(counter >= 250) wheelMove += 4.0;
 }
 unsigned timeStep = 15;
 void timer(int unUsed) {
