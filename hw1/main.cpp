@@ -16,11 +16,6 @@ double rl2Move;
 double wheelMove;
 double bodyAngle=-90.0;
 
-/*
-	STATE : body and arm detach. rotating joint
-	TODO : The transform matrix should be added before body.
-*/
-
 void myCube(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat b, GLfloat len) {
 	glPushMatrix();
 	{
@@ -39,14 +34,6 @@ void joint(GLfloat rad) {
 		glColor3f(1.0, 1.0, 0.0);
 		glutSolidSphere(rad, 10, 10);
 	}
-	glPopMatrix();
-}
-
-void mySphere(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat b, GLfloat len) {
-	glPushMatrix();
-	glScalef(sx, sy, sz);
-	glColor3f(r, g, b);
-	glutSolidSphere(len, 10, 10);
 	glPopMatrix();
 }
 
@@ -155,7 +142,7 @@ void human() {
 			glTranslatef(1.5, 0.5, 0.0);
 			joint(0.5);
 			glPushMatrix();
-			{//for arm1
+			{//for leftarm1
 				glRotatef(ll1Move, 0.0, 0.0, 1.0); //arm1 up-down rotation will be happen
 				glTranslatef(0.0, -1.25, 0.0);
 				//glRotatef(90.0, 0.0, 0.0, 1.0); //transform coordinates
@@ -177,19 +164,19 @@ void human() {
 			glPopMatrix();
 
 		}
-		glPopMatrix(); // from right shoulder joint
+		glPopMatrix();
 		glPushMatrix();
 		{//right shoulder
 			glTranslatef(-1.5, 0.5, 0.0);
 			joint(0.5);
 			glPushMatrix();
-			{//for leftArm1
+			{//for rightArm1
 				glRotatef(-1*rl1Move, 0.0, 0.0, 1.0);
 				glTranslatef(0.0, -1.25, 0.0);
 				//glRotatef(90.0, 0.0, 0.0, 1.0);//tranform coordinate
 				myCube(0.5, 1.5, 0.5, 1.0, 0.0, 0.0, 1.0);
 				glPushMatrix();
-				{//Left arm 1-2 joint
+				{//Right rm 1-2 joint
 					glTranslatef(0.0, -1.25, 0.0);
 					joint(0.5);
 					glPushMatrix();
