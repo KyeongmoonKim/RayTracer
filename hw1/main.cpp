@@ -273,7 +273,7 @@ void human() {
 			glPopMatrix();
 			glPushMatrix();
 			{//left back wheel
-				glTranslatef(2.25, -1.5, -3.5);
+				glTranslatef(2.25, -1.0, -3.5);
 				glPushMatrix();
 				{
 					glRotatef(wheelMove, 1.0, 0.0, 0.0);
