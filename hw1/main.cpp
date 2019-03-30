@@ -88,11 +88,11 @@ void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(50.0, 30.0, 50.0, 0,0,0, 0,1,0);
+	gluLookAt(70.0, 30.0, 70.0, 0,0,0, 0,1,0);
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
-	{
+	{//for background
 		glBegin(GL_LINES);
 			glVertex3f(0, 0, 0);
 			glVertex3f(0, 0, 500);
@@ -105,7 +105,7 @@ void human() {
 	glPopMatrix();
 	glPushMatrix();
 	{//human
-		glTranslatef(10.4719755+bodyMovex, 14.0, 10.4719755+bodyMovez);
+		glTranslatef(30.0+bodyMovex, 15.5, 30.0+bodyMovez);
 		glRotatef(bodyAngle, 0.0, 1.0, 0.0);
 		myCube(1.0, 1.0, 0.5, 0.0, 0.0, 1.0, 2.0);
 		//body local cs
