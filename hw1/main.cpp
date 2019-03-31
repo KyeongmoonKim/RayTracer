@@ -9,12 +9,6 @@ double bodyMovex;
 double bodyMovez;
 double rotX;
 double rotZ;
-double ll1MoveX;
-double ll1MoveY;
-double ll2MoveX;
-double ll2MoveY;
-double rl1Move;
-double rl2Move;
 double wheelMove;
 double wheelMove2;
 double bodyAngle=0.0;
@@ -72,13 +66,6 @@ void makeWheel(GLfloat rad) {
 
 
 
-void initTemp() {
-	ll1MoveX = 0.0;
-	ll1MoveY = 0.0;
-	rl1Move = 0.0;
-	rl2Move = 0.0;
-}
-
 void initDiff() {
 	counter = 0;
 	wheelMove = 0.0;
@@ -131,8 +118,8 @@ void human() {
 			joint(0.5);
 			glPushMatrix();
 			{//for leftarm1
-				glRotatef(30.0+ll1MoveY, 0.0, 1.0, 0.0); //for handling, initValue:30.0
-				glRotatef(-45.0+ll1MoveX, 1.0, 0.0, 0.0); //for handling, initValue:-45.0
+				glRotatef(30.0, 0.0, 1.0, 0.0); //for handling
+				glRotatef(-45.0, 1.0, 0.0, 0.0); //for handling
 				glTranslatef(0.0, -1.0, 0.0);
 				//glRotatef(90.0, 0.0, 0.0, 1.0); //transform coordinates
 				myCube(0.5, 1.0, 0.5, 1.0, 0.0, 0.0, 1.0); 
@@ -142,8 +129,8 @@ void human() {
 					joint(0.5);
 					glPushMatrix();
 					{//for arm2
-						glRotatef(-60.0+ll2MoveY, 0.0, 1.0, 0.0);//for handling, initValue:-60.0
-						glRotatef(-90.0+ll2MoveX, 1.0, 0.0, 0.0);//for handling, initValue:-90.0
+						glRotatef(-60.0, 0.0, 1.0, 0.0);//for handling
+						glRotatef(-90.0, 1.0, 0.0, 0.0);//for handling
 						glTranslatef(0.0, -1.25, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
@@ -161,8 +148,8 @@ void human() {
 			joint(0.5);
 			glPushMatrix();
 			{//for rightArm1
-				glRotatef(-30.0, 0.0, 1.0, 0.0); //for handle, initValue:-30.0
-				glRotatef(-45.0, 1.0, 0.0, 0.0); //for handle, initValue:-45.0
+				glRotatef(-30.0, 0.0, 1.0, 0.0); //for handle
+				glRotatef(-45.0, 1.0, 0.0, 0.0); //for handle
 				glTranslatef(0.0, -1.0, 0.0);
 				//glRotatef(90.0, 0.0, 0.0, 1.0);//tranform coordinate
 				myCube(0.5, 1.0, 0.5, 1.0, 0.0, 0.0, 1.0);
@@ -172,8 +159,8 @@ void human() {
 					joint(0.5);
 					glPushMatrix();
 					{
-						glRotatef(60.0, 0.0, 1.0, 0.0);//for handle,initValue:60.0
-						glRotatef(-90.0, 1.0, 0.0, 0.0);//for handle,initValue:-90.0
+						glRotatef(60.0, 0.0, 1.0, 0.0);//for handle
+						glRotatef(-90.0, 1.0, 0.0, 0.0);//for handle
 						glTranslatef(0.0, -1.25, 0.0);
 						myCube(0.5, 1.5, 0.5, 0.0, 1.0, 0.0, 1.0);
 					}
@@ -381,29 +368,15 @@ void bodyAni(int counter) {
 	if(counter >= 480 && counter < 510) bodyTheta = 15;
 	if(counter >= 510 && counter < 680) temp(bodyTheta);
 }
-void armAni(int counter) {
-	if(counter <= 50&& counter >= 0) {
-		ll1MoveX -= 0.5;
-		ll1MoveY -= 0.5;
-		ll2MoveX -= 0.15;
-		ll2MoveY += 0.3;
-	}
-}
+
 void neckAni(int counter) {
-	if(counter >= 150 && counter < 180) {
-		neckMove+=2;
-	}
+	if(counter >= 150 && counter < 180) neckMove+=2;
+	if(counter >= 680 && counter < 710) neckMove-=2;
 }
 void haAni(int counter) {
-	if(counter >= 180 && counter <= 249) {
-		handleMove -= 1;
-	}
-	if(counter >= 250 && counter < 300) {
-		handleMove -= 3;
-	} 
-	if(counter >=480 &&counter < 510) {
-		handleMove += 3;
-	}
+	if(counter >= 180 && counter < 250) handleMove -= 2;
+	if(counter >= 250 && counter < 300) handleMove -= 3;
+	if(counter >= 480 &&counter < 510) handleMove += 3;
 }
 void whAni(int counter) {
 	if(counter <= 149) wheelMove += 4.0;
@@ -448,7 +421,6 @@ int main(int argc, char** argv) {
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
 	initDiff();
-	initTemp();
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(human);
 	glutReshapeFunc(reShape);
