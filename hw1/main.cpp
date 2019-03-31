@@ -91,7 +91,7 @@ void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(100.0, 30.0, 100.0, 0.0, 0.0, 0.0,  0,1,0);
+	gluLookAt(100.0, 35, 100.0, 0.0, 0.0, 0.0,  0,1,0);
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -254,6 +254,12 @@ void human() {
 			glTranslatef(0.0, -7.0, 0.0);
 			myCube(4.0, 1.0, 5.0, 1.0, 1.0, 0.0, 2.0);
 			glPushMatrix();
+			{//chair
+				glTranslatef(0.0, 2.5, 0.0);
+				myCube(0.5, 1.0, 0.5, 0.0, 1.0, 1.0, 3);
+			}
+			glPopMatrix();
+			glPushMatrix();
 			{//handle pillar
 				glTranslatef(0.0, 4.0, 3.0);
 				myCube(0.5, 6.0, 0.5, 0.0, 1.0, 0.0, 1.0);
@@ -370,9 +376,9 @@ void bodyAni(int counter) {
 		if(counter%5==0) bodyTheta += 1.0; 
 		temp(bodyTheta);
 	} 
-	if(counter >= 250 && counter < 300) bodyTheta = 30;
+	if(counter >= 250 && counter < 300) bodyTheta = 20;
 	if(counter >= 300 && counter < 480) temp(bodyTheta);
-	if(counter >= 480 && counter < 510) bodyTheta = 20;
+	if(counter >= 480 && counter < 510) bodyTheta = 15;
 	if(counter >= 510 && counter < 680) temp(bodyTheta);
 }
 void armAni(int counter) {
@@ -405,9 +411,9 @@ void whAni(int counter) {
 		wheelMove2 += 0.2;
 		wheelMove += 4.0;
 	}
-	if(counter >= 250 && counter < 300) wheelMove2 += 0.7;
+	if(counter >= 250 && counter < 300) wheelMove2 += 0.4;
 	if(counter >= 300 && counter < 480) wheelMove += 4.0;
-	if(counter >= 480 && counter < 510) wheelMove2 -= 0.7;
+	if(counter >= 480 && counter < 510) wheelMove2 -= 0.3;
 	if(counter >= 510 && counter < 680) wheelMove += 4.0;
 }
 unsigned timeStep = 15;
