@@ -3,7 +3,7 @@
 #include<iostream>
 #define PI 3.14159265
 
-
+//animation variables
 int counter;
 double bodyMovex;
 double bodyMovez;
@@ -16,6 +16,10 @@ double bodyTheta;
 double neckMove;
 double handleMove;
 
+//viewing variables
+double transX;
+double transY;
+double transZ;
 void myCube(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat b, GLfloat len) {
 	glPushMatrix();
 	{
@@ -78,7 +82,8 @@ void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(100.0, 35, 100.0, 0.0, 0.0, 0.0,  0,1,0);
+	glTranslatef(transX, transY, transZ);
+	gluLookAt(100.0, 35.0, 100.0, 0.0, 0.0, 0.0,  0,1,0); //100 35 100 0 0 0 is initial
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -407,6 +412,25 @@ void reShape(int newWeight, int newHeight) {
 	gluPerspective(45.0, (GLfloat)newWeight/newHeight, 0.1, 400.0);
 }
 
+void myKeyboard(unsigned char key, int x, int y) {
+	switch(key) {
+		case 'a':
+		transX += 1.0;
+		break;
+		case 'w':
+		transY -= 1.0;
+		break;
+		case 's':
+		transY += 1.0;
+		break;
+		case 'd':
+		transX -= 1.0;
+		break;
+		defalut:
+		break;
+	}
+}
+
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
@@ -424,6 +448,7 @@ int main(int argc, char** argv) {
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(human);
 	glutReshapeFunc(reShape);
+	glutKeyboardFunc(myKeyboard);
 	glutTimerFunc(timeStep, timer, 0);
 	glutMainLoop();
 }
