@@ -20,6 +20,10 @@ double handleMove;
 double transX;
 double transY;
 double transZ;
+double zoomAngle;
+
+//when camera moves, the ratio of the object change
+//when angle changes, the ratio of the objectdoesn't change
 void myCube(GLfloat sx, GLfloat sy, GLfloat sz, GLfloat r, GLfloat g, GLfloat b, GLfloat len) {
 	glPushMatrix();
 	{
@@ -80,6 +84,9 @@ void initDiff() {
 }
 void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45.0+zoomAngle, 1.0, 0.1, 400); //new
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glTranslatef(transX, transY, transZ);
@@ -96,6 +103,7 @@ void human() {
 			glVertex3f(0, 0, 0);
 			glVertex3f(500, 0, 0);
 		glEnd();
+		myCube(1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 5.0); //for test
 	}
 	glPopMatrix();
 	glPushMatrix();
@@ -409,7 +417,7 @@ void reShape(int newWeight, int newHeight) {
 	glViewport(0, 0, newWeight, newHeight);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(45.0, (GLfloat)newWeight/newHeight, 0.1, 400.0);
+	gluPerspective(45.0+zoomAngle, (GLfloat)newWeight/newHeight, 0.1, 400.0);
 }
 
 void myKeyboard(unsigned char key, int x, int y) {
@@ -426,9 +434,22 @@ void myKeyboard(unsigned char key, int x, int y) {
 		case 'd':
 		transX -= 1.0;
 		break;
+		case 'j':
+		transZ -= 1.0;
+		break;
+		case 'k':
+		transZ += 1.0;
+		break;
+		case 'u':
+		zoomAngle += 1.0;
+		break;
+		case 'i':
+		zoomAngle -= 1.0;
+		break;
 		defalut:
 		break;
 	}
+	std::cout << zoomAngle << " " << transZ << " " <<std::endl;
 }
 
 int main(int argc, char** argv) {
