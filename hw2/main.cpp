@@ -476,6 +476,7 @@ void myMouse(int button, int state, int x, int y) {
 			diff[0] = ((double)x - diff[0]) / factor;
 			diff[1] = ((double)y - diff[1]) / factor;
 			diff[2] = 0.0;
+			std::cout << "diff : " << diff[0] << ", " << diff[1] <<", "<<diff[2]<<std::endl;
 			trackBallXY();
 		}
 		break;
@@ -541,25 +542,34 @@ void trackBallXY() {
 	double vZ[3];
 	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
 	double *xAxis = crossProduct(viewUp, vZ);
+	std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", "<<xAxis[2] <<std::endl;
 	double dx = length(xAxis, 3);
 	double *yAxis = crossProduct(vZ, xAxis);
 	double dy = length(yAxis, 3);
 	double dragedP[3];
 	for(int i = 0; i < 3; i++) {
-		//dragedP[i] = p0[i] + xAxis[i] * diff[0] / dx + p0[i] * yAxis[i] * diff[1] / dy;
-		dragedP[i] = p0[i] + xAxis[i] / dx; //y-axis rotation for test
+		dragedP[i] = p0[i] + xAxis[i] * diff[0] / dx + yAxis[i] * diff[1] / dy;
+		//dragedP[i] = p0[i] + xAxis[i] / dx; //y-axis rotation for test
 	}
 	double dragedV[3];
+	std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
+	std::cout << "pdraged : " << dragedP[0] << ", "<<dragedP[1] << ", "<<dragedP[2]<<std::endl;
 	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
 	//upper section is codes for making dragged point and vector
 	double* rotAxis = crossProduct(vZ, dragedV); //rotAxis, and using reference point pref.
-	double rotAngle = -1.0 * atan2(dotProduct(vZ, dragedV), length(rotAxis, 3));//radian value
+	std::cout << dotProduct(vZ, dragedV)<< " "<<  length(rotAxis, 3)<<std::endl;
+	double cs = dotProduct(vZ, dragedV) / (length(vZ,3) * length(dragedV, 3));
+	double sn = length(rotAxis, 3) / (length(vZ, 3) * length(dragedV, 3));
+	double rotAngle = -1.0 * atan2(sn, cs);//radian value
+	//double rotAngle = atan2(sn, cs);
+	std::cout << cs << " " << sn <<std::endl;
+	std::cout <<"angle : "<< rotAngle * 180 / PI << std::endl;
 	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / length(rotAxis, 3);
 	
 	//quaternian part start
 	
 	double qRot[4]; //quaternian for rotAxis and rotAngle
-	double qP0[4]; //quaternian for p0
+	double qP0[4]; //quaternian for p0 //must be changed to unit quaternian.
 	double qPviewUp[4]; //quaternian for p0 + viewUp
 	double qRotI[4]; //imverse of qRot
 	qRot[0] = cos(rotAngle / 2);
@@ -572,11 +582,13 @@ void trackBallXY() {
 	}
 	qRotI[0] = qRot[0] / length(qRot, 4);
 	for(int i = 1; i< 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot, 4);
+
+
 	double* q0new = Qmulti(qRot, Qmulti(qP0, qRotI));
 	double* qViewUp = Qmulti(qRot, Qmulti(qPviewUp, qRotI));
 	for(int i = 0; i < 3; i++) {
 		p0[i] = q0new[i+1];
-		//viewUp[i] = qViewUp[i+1] - q0new[i+1];
+		viewUp[i] = qViewUp[i+1] - q0new[i+1];
 	}
 } //trackball for x-axis and y-axis
 
