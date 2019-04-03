@@ -431,22 +431,22 @@ void reShape(int newWeight, int newHeight) {
 void myKeyboard(unsigned char key, int x, int y) {
 	switch(key) {
 		case 'a':
-		moveCameraX(1);
-		break;
-		case 'w':
-		
-		break;
-		case 's':
-
-		break;
-		case 'd':
 		moveCameraX(-1);
 		break;
+		case 'w':
+		moveCameraY(1);
+		break;
+		case 's':
+		moveCameraY(-1);
+		break;
+		case 'd':
+		moveCameraX(1);
+		break;
 		case 'j':
-		moveCameraZ(-1);
+		moveCameraZ(1);
 		break;
 		case 'k':
-		moveCameraZ(1);
+		moveCameraZ(-1);
 		break;
 		case 'u':
 		if(zoomAngle < 179) zoomAngle += 1.0;
@@ -486,23 +486,35 @@ void myMouse(int button, int state, int x, int y) {
 }
 
 void moveCameraX(int check) {
-	double vZ[3];
-	for(int i = 0; i < 3; i++) vZ[i] = pref[i] - p0[i];
-	double *temp = crossProduct(viewUp, vZ);
+	double vZ[3]; // zaxis in view coordinate
+	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
+	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
 	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]);
 	for(int i = 0; i < 3; i++) {
 		p0[i] += check * temp[i] / d;
 		pref[i] += check *temp[i] / d;
-	}
+	} //translation
 }
-void moveCameraZ(int check) {
-	double temp[3];
-	for(int i = 0; i < 3; i++) temp[i] = pref[i] - p0[i];
+
+void moveCameraY(int check) {
+	double vZ[3];
+	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
+	double *temp = crossProduct(vZ, crossProduct(viewUp, vZ)); //get y-axis in veiw coordinate
 	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]);
 	for(int i = 0; i < 3; i++) {
 		p0[i] += check * temp[i] / d;
-		pref[i] += check * temp[i] / d;
+		pref[i] += check * temp[i] /d;
 	}
+}
+
+void moveCameraZ(int check) {
+	double temp[3];
+	for(int i = 0; i < 3; i++) temp[i] = p0[i] - pref[i]; //Z-axis in viewing coordinate
+	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]); //get distance
+	for(int i = 0; i < 3; i++) {
+		p0[i] += check * temp[i] / d;
+		pref[i] += check * temp[i] / d;
+	} //z - axis translation
 }
 
 double* crossProduct(double *v1, double *v2) {
