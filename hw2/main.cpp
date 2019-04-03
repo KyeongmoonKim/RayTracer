@@ -20,7 +20,8 @@ double handleMove;
 double transX;
 double transY;
 double transZ;
-double zoomAngle;
+
+double zoomAngle = 45.0;
 
 //when camera moves, the ratio of the object change
 //when angle changes, the ratio of the objectdoesn't change
@@ -86,10 +87,10 @@ void human() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(45.0+zoomAngle, 1.0, 0.1, 400); //new
+	gluPerspective(zoomAngle, 1.0, 0.1, 400); //temp zoom in
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(transX, transY, transZ);
+	glTranslatef(transX, transY, transZ); //temp camera move
 	gluLookAt(100.0, 35.0, 100.0, 0.0, 0.0, 0.0,  0,1,0); //100 35 100 0 0 0 is initial
 	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
@@ -441,10 +442,10 @@ void myKeyboard(unsigned char key, int x, int y) {
 		transZ += 1.0;
 		break;
 		case 'u':
-		zoomAngle += 1.0;
+		if(zoomAngle < 179) zoomAngle += 1.0;
 		break;
 		case 'i':
-		zoomAngle -= 1.0;
+		if(zoomAngle > 1) zoomAngle -= 1.0;
 		break;
 		defalut:
 		break;
