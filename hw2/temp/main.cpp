@@ -1,7 +1,7 @@
 #include<GL/glut.h>
 #include<math.h>
 #include<iostream>
-#include<stdlib.h>
+
 #define PI 3.14159265
 
 //animation variables
@@ -18,18 +18,16 @@ double neckMove;
 double handleMove;
 
 //viewing variables
-double p0[3]; //gluLookAt zero-point
-double pref[3]; //gluLookAt ref-point
-double viewUp[3]; //viewUpvector
+double p0[3];
+double pref[3];
+double transX;
+double transY;
+double transZ;
 double v1[3];
 double rAxis[3];
 double rAngle;
 double factor = 70.0; //using normalize v1
 double zoomAngle = 45.0;
-void moveCameraX(int check);
-void moveCameraY(int check);
-void moveCameraZ(int check);
-double* crossProduct(double *v1, double *v2);
 
 //when camera moves, the ratio of the object change
 //when angle changes, the ratio of the objectdoesn't change
@@ -98,7 +96,9 @@ void human() {
 	gluPerspective(zoomAngle, 1.0, 0.1, 400); //temp zoom in
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
+	glTranslatef(transX, transY, transZ); //temp camera move
+	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  0,1,0); //100 35 100 0 0 0 is initial
+	//start making world coordinate
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//for background
@@ -431,22 +431,22 @@ void reShape(int newWeight, int newHeight) {
 void myKeyboard(unsigned char key, int x, int y) {
 	switch(key) {
 		case 'a':
-		moveCameraX(1);
+		transX += 1.0;
 		break;
 		case 'w':
-		
+		transY -= 1.0;
 		break;
 		case 's':
-
+		transY += 1.0;
 		break;
 		case 'd':
-		moveCameraX(-1);
+		transX -= 1.0;
 		break;
 		case 'j':
-		moveCameraZ(-1);
+		transZ -= 1.0;
 		break;
 		case 'k':
-		moveCameraZ(1);
+		transZ += 1.0;
 		break;
 		case 'u':
 		if(zoomAngle < 179) zoomAngle += 1.0;
@@ -457,7 +457,7 @@ void myKeyboard(unsigned char key, int x, int y) {
 		defalut:
 		break;
 	}
-
+	std::cout << zoomAngle << " " << transZ << " " <<std::endl;
 }
 
 void myMouse(int button, int state, int x, int y) {
@@ -485,43 +485,13 @@ void myMouse(int button, int state, int x, int y) {
 	}
 }
 
-void moveCameraX(int check) {
-	double vZ[3];
-	for(int i = 0; i < 3; i++) vZ[i] = pref[i] - p0[i];
-	double *temp = crossProduct(viewUp, vZ);
-	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]);
-	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i] / d;
-		pref[i] += check *temp[i] / d;
-	}
-}
-void moveCameraZ(int check) {
-	double temp[3];
-	for(int i = 0; i < 3; i++) temp[i] = pref[i] - p0[i];
-	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]);
-	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i] / d;
-		pref[i] += check * temp[i] / d;
-	}
-}
-
-double* crossProduct(double *v1, double *v2) {
-	double* ret = (double *)malloc(sizeof(double)*3); 
-	ret[0] = v1[1]*v2[2] - v1[2]*v2[1];
-	ret[1] = v1[2]*v2[0] - v1[0]*v2[2];
-	ret[2] = v1[0]*v2[1] - v1[1]*v2[0];
-	return ret;
-} //v1 is second finger, v2 is third finger
-void setView(double x0, double y0, double z0, double xref, double yref, double zref, double x, double y, double z) {
+void setView(double x0, double y0, double z0, double xref, double yref, double zref) {
 	p0[0] = x0;
 	p0[1] = y0;
 	p0[2] = z0;
 	pref[0] = xref;
 	pref[1] = yref;
 	pref[2] = zref;
-	viewUp[0] = x;
-	viewUp[1] = y;
-	viewUp[2] = z;
 }
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -537,7 +507,7 @@ int main(int argc, char** argv) {
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
 	initDiff();
-	setView(100.0, 35.0, 100.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+	setView(100.0, 35.0, 100.0, 0.0, 0.0, 0.0);
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(human);
 	glutReshapeFunc(reShape);
