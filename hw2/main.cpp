@@ -21,15 +21,18 @@ double handleMove;
 double p0[3]; //gluLookAt zero-point
 double pref[3]; //gluLookAt ref-point
 double viewUp[3]; //viewUpvector
-double v1[3];
-double rAxis[3];
-double rAngle;
+double diff[3];
 double factor = 70.0; //using normalize v1
 double zoomAngle = 45.0;
+//viewing functions
 void moveCameraX(int check);
 void moveCameraY(int check);
 void moveCameraZ(int check);
 double* crossProduct(double *v1, double *v2);
+double dotProduct(double *v1, double *v2);
+void trackBallXY();
+double length(double *v, int n); //length of n-dimension vector
+double* Qmulti(double *q1, double *q2);
 
 //when camera moves, the ratio of the object change
 //when angle changes, the ratio of the objectdoesn't change
@@ -464,18 +467,16 @@ void myMouse(int button, int state, int x, int y) {
 	switch(button) {
 		case GLUT_LEFT_BUTTON:
 		if(state==GLUT_DOWN) {
-			std::cout<<x <<" "<<y <<std::endl;
-			v1[0] = (double)x;
-			v1[1] = (double)y;
-			v1[2] = 0.0;
+			diff[0] = (double)x;
+			diff[1] = (double)y;
+			diff[2] = 0.0;
 		}
 		else if(state==GLUT_UP) 
 		{
-			std::cout<<x << " "<<y<<std::endl;
-			v1[0] = ((double)x - v1[0]) / factor;
-			v1[1] = ((double)y - v1[1]) / factor;
-			v1[2] = 0.0;
-			std::cout<<v1[0]<<", "<<v1[1]<<", "<<v1[2]<<std::endl;
+			diff[0] = ((double)x - diff[0]) / factor;
+			diff[1] = ((double)y - diff[1]) / factor;
+			diff[2] = 0.0;
+			trackBallXY();
 		}
 		break;
 		case GLUT_RIGHT_BUTTON:
@@ -489,7 +490,7 @@ void moveCameraX(int check) {
 	double vZ[3]; // zaxis in view coordinate
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
-	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]);
+	double d = length(temp, 3);
 	for(int i = 0; i < 3; i++) {
 		p0[i] += check * temp[i] / d;
 		pref[i] += check *temp[i] / d;
@@ -500,7 +501,7 @@ void moveCameraY(int check) {
 	double vZ[3];
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
 	double *temp = crossProduct(vZ, crossProduct(viewUp, vZ)); //get y-axis in veiw coordinate
-	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]);
+	double d = length(temp, 3);
 	for(int i = 0; i < 3; i++) {
 		p0[i] += check * temp[i] / d;
 		pref[i] += check * temp[i] /d;
@@ -510,7 +511,7 @@ void moveCameraY(int check) {
 void moveCameraZ(int check) {
 	double temp[3];
 	for(int i = 0; i < 3; i++) temp[i] = p0[i] - pref[i]; //Z-axis in viewing coordinate
-	double d = sqrt(temp[0] * temp[0] + temp[1] * temp[1] + temp[2] * temp[2]); //get distance
+	double d = length(temp, 3); //get distance
 	for(int i = 0; i < 3; i++) {
 		p0[i] += check * temp[i] / d;
 		pref[i] += check * temp[i] / d;
@@ -524,6 +525,77 @@ double* crossProduct(double *v1, double *v2) {
 	ret[2] = v1[0]*v2[1] - v1[1]*v2[0];
 	return ret;
 } //v1 is second finger, v2 is third finger
+
+double dotProduct(double *v1, double *v2) {
+	double ret = v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+	return ret;
+}
+
+double length(double *v, int n) {
+	double ret = 0.0;
+	for(int i = 0; i < n; i++) ret += v[i]*v[i];
+	return sqrt(ret);
+}
+
+void trackBallXY() {
+	double vZ[3];
+	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
+	double *xAxis = crossProduct(viewUp, vZ);
+	double dx = length(xAxis, 3);
+	double *yAxis = crossProduct(vZ, xAxis);
+	double dy = length(yAxis, 3);
+	double dragedP[3];
+	for(int i = 0; i < 3; i++) {
+		//dragedP[i] = p0[i] + xAxis[i] * diff[0] / dx + p0[i] * yAxis[i] * diff[1] / dy;
+		dragedP[i] = p0[i] + xAxis[i] / dx; //y-axis rotation for test
+	}
+	double dragedV[3];
+	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
+	//upper section is codes for making dragged point and vector
+	double* rotAxis = crossProduct(vZ, dragedV); //rotAxis, and using reference point pref.
+	double rotAngle = -1.0 * atan2(dotProduct(vZ, dragedV), length(rotAxis, 3));//radian value
+	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / length(rotAxis, 3);
+	
+	//quaternian part start
+	
+	double qRot[4]; //quaternian for rotAxis and rotAngle
+	double qP0[4]; //quaternian for p0
+	double qPviewUp[4]; //quaternian for p0 + viewUp
+	double qRotI[4]; //imverse of qRot
+	qRot[0] = cos(rotAngle / 2);
+	qP0[0] = 0.0;
+	qPviewUp[0] = 0.0;
+	for(int i = 1; i < 4; i++) {
+		qRot[i] = rotAxis[i-1] * sin(rotAngle/2);
+		qP0[i] = p0[i-1];
+		qPviewUp[i] = p0[i-1] + viewUp[i-1];
+	}
+	qRotI[0] = qRot[0] / length(qRot, 4);
+	for(int i = 1; i< 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot, 4);
+	double* q0new = Qmulti(qRot, Qmulti(qP0, qRotI));
+	double* qViewUp = Qmulti(qRot, Qmulti(qPviewUp, qRotI));
+	for(int i = 0; i < 3; i++) {
+		p0[i] = q0new[i+1];
+		//viewUp[i] = qViewUp[i+1] - q0new[i+1];
+	}
+} //trackball for x-axis and y-axis
+
+double* Qmulti(double *q1, double *q2) {
+	double* ret = (double *)malloc(sizeof(double) * 4);
+	double w1 = q1[0];
+	double w2 = q2[0];
+	double v1[3];
+	double v2[3];
+	for(int i = 1; i < 4; i++) {
+		v1[i-1] = q1[i];
+		v2[i-1] = q2[i];
+	}
+	ret[0] = w1 * w2 - dotProduct(v1, v2);
+	double* temp = crossProduct(v1, v2);
+	for(int i = 1; i < 4; i++) ret[i] = w1 * v2[i-1] + w2 * v1[i-1] + temp[i-1];
+	return ret;
+}
+
 void setView(double x0, double y0, double z0, double xref, double yref, double zref, double x, double y, double z) {
 	p0[0] = x0;
 	p0[1] = y0;
