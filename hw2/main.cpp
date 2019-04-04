@@ -491,22 +491,28 @@ void moveCameraX(int check) {
 	double vZ[3]; // zaxis in view coordinate
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
-	std::cout <<"xaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2]<<std::endl;
 	double d = length(temp, 3);
+	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
+	std::cout <<"xaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2]<<std::endl;
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i] / d;
-		pref[i] += check *temp[i] / d;
+		p0[i] += check * temp[i];
+		pref[i] += check *temp[i];
 	} //translation
 }
 
 void moveCameraY(int check) {
 	double vZ[3];
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
-	double *temp = crossProduct(vZ, crossProduct(viewUp, vZ)); //get y-axis in veiw coordinate
+	double* vX = crossProduct(viewUp, vZ);
+	double dx = length(vX, 3);
+	for(int i = 0; i < 3; i++) vX[i] = vX[i] / dx;
+	double *temp = crossProduct(vZ, vX); //get y-axis in veiw coordinate
 	double d = length(temp, 3);
+	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
+	std::cout <<"yaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2] <<std::endl;
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i] / d;
-		pref[i] += check * temp[i] /d;
+		p0[i] += check * temp[i];
+		pref[i] += check * temp[i];
 	}
 }
 
@@ -543,14 +549,17 @@ void trackBallXY() {
 	double vZ[3];
 	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
 	double *xAxis = crossProduct(viewUp, vZ);
-	std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", "<<xAxis[2] <<std::endl;
 	double dx = length(xAxis, 3);
+	for(int i = 0; i < 3; i++) xAxis[i] = xAxis[i]/dx;
+	std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", " << xAxis[2] << std::endl;
 	double *yAxis = crossProduct(vZ, xAxis);
 	double dy = length(yAxis, 3);
+	for(int i = 0; i < 3; i++) yAxis[i] = yAxis[i]/dy;
+	std::cout <<"yaxis : " << yAxis[0] << ", " << yAxis[1] << ", "<<yAxis[2] << std::endl;
 	double dragedP[3];
 	for(int i = 0; i < 3; i++) {
-		//dragedP[i] = p0[i] + xAxis[i] * diff[0] / dx + yAxis[i] * diff[1] / dy; //original code
-		dragedP[i] = p0[i] + xAxis[i] * diff[0] / dx - yAxis[i] * diff[1] / dy;
+		//dragedP[i] = p0[i] + xAxis[i] * diff[0] + yAxis[i] * diff[1] / dy; //original code
+		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
 	}
 	double dragedV[3];
 	std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
