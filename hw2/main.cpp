@@ -31,6 +31,7 @@ void moveCameraZ(int check);
 double* crossProduct(double *v1, double *v2);
 double dotProduct(double *v1, double *v2);
 void trackBallXY();
+void trackBallZ(int check);
 double length(double *v, int n); //length of n-dimension vector
 double* Qmulti(double *q1, double *q2);
 
@@ -433,29 +434,33 @@ void reShape(int newWeight, int newHeight) {
 
 void myKeyboard(unsigned char key, int x, int y) {
 	switch(key) {
-		case 'a':
+		case 'a': //camera left move
 		moveCameraX(-1);
 		break;
-		case 'w':
+		case 'w': //camera up move
 		moveCameraY(1);
 		break;
-		case 's':
+		case 's': //camera down move
 		moveCameraY(-1);
 		break;
-		case 'd':
+		case 'd': //camera right move
 		moveCameraX(1);
 		break;
-		case 'j':
+		case 'j': //camera dolly out
 		moveCameraZ(1);
 		break;
-		case 'k':
+		case 'k': //camera dolly in
 		moveCameraZ(-1);
 		break;
-		case 'u':
+		case 'u': //camera zoom in
 		if(zoomAngle < 179) zoomAngle += 1.0;
 		break;
-		case 'i':
+		case 'i': //camera zoom out
 		if(zoomAngle > 1) zoomAngle -= 1.0;
+		break;
+		case 'o': //trackball z-axis
+		break;
+		case 'p': //trackball z-axis
 		break;
 		defalut:
 		break;
@@ -477,7 +482,8 @@ void myMouse(int button, int state, int x, int y) {
 			diff[1] = ((double)y - diff[1]) / factor;
 			diff[2] = 0.0;
 			std::cout << "diff : " << diff[0] << ", " << diff[1] <<", "<<diff[2]<<std::endl;
-			trackBallXY();
+			if(diff[0] != 0 || diff[1] != 0 || diff[2] != 0)
+				trackBallXY();
 		}
 		break;
 		case GLUT_RIGHT_BUTTON:
@@ -485,6 +491,7 @@ void myMouse(int button, int state, int x, int y) {
 		default:
 		break;
 	}
+	std::cout << "(x, y) : " << x << ", "<< y<<std::endl;
 }
 
 void moveCameraX(int check) {
@@ -545,6 +552,21 @@ double length(double *v, int n) {
 	return sqrt(ret);
 }
 
+void trackBallZ(int check) {
+	double QviewUp[4];
+	QviewUp[0] = 0.0;
+	for(int i = 1; i < 4; i++) QviewUp[i] = p0[i]+viewUp[i];
+	double rotAxis[3];
+	for(int i = 0; i < 3; i++) rotAxis[i] = p0[i] - pref[i];
+	double d = length(rotAxis, 3);
+	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / 3;
+	double rotAngle = 1.0 * check * PI / 180;
+	double qRot[4];
+	double qRotI[4];
+	
+	//quaternian multi and get new point of QviewUp and update viewUp vector using new point and p0
+	//because trackballz doesn't change camera postion, only rotate the view up vector
+}//rot Axis is z-axis
 void trackBallXY() {
 	double vZ[3];
 	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
@@ -558,8 +580,8 @@ void trackBallXY() {
 	std::cout <<"yaxis : " << yAxis[0] << ", " << yAxis[1] << ", "<<yAxis[2] << std::endl;
 	double dragedP[3];
 	for(int i = 0; i < 3; i++) {
-		//dragedP[i] = p0[i] + xAxis[i] * diff[0] + yAxis[i] * diff[1] / dy; //original code
 		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
+		//because zero point is most left-up direction window coordicnate, yAxis[i] diff be substracted not added!
 	}
 	double dragedV[3];
 	std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
