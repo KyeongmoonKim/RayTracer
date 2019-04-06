@@ -24,6 +24,8 @@ double viewUp[3]; //viewUpvector
 double diff[3];
 double factor = 70.0; //using normalize v1
 double zoomAngle = 45.0;
+int axisView = 0;
+int ttttt;
 //viewing functions
 void moveCameraX(int check);
 void moveCameraY(int check);
@@ -102,6 +104,20 @@ void human() {
 	gluPerspective(zoomAngle, 1.0, 0.1, 400); //temp zoom in
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	if(axisView == 1) {
+		double tV[3];
+		for(int i = 0; i < 3; i++) tV[i] = p0[i] - pref[i];
+		double d = -1.0 * length(tV, 3);
+		std::cout<<d<<std::endl;
+		std::cout<<"curr viewUp : "<< viewUp[0] <<", "<<viewUp[1] <<", "<<viewUp[2]<<std::endl;
+		glBegin(GL_LINES);
+			glColor3f(1.0, 0.0, 1.0);
+			glVertex3f(0, 0, d);
+			glVertex3f(0, 20, d);
+			glVertex3f(0, 0, d);
+			glVertex3f(20, 0, d); 
+		glEnd();
+	}
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
@@ -369,7 +385,7 @@ void human() {
 	glutSwapBuffers();
 }
 
-void temp(double theta) {
+void ttemp(double theta) {
 	double d = 2.0 * 4.0 * PI / 180.0;
 	double currD = sqrt(rotX*rotX + rotZ*rotZ);
 	double temp1 = bodyAngle * PI / 180.0;
@@ -385,12 +401,12 @@ void bodyAni(int counter) {
 	}
 	if(counter>=180 && counter < 250) {
 		if(counter%5==0) bodyTheta += 1.0; 
-		temp(bodyTheta);
+		ttemp(bodyTheta);
 	} 
 	if(counter >= 250 && counter < 300) bodyTheta = 20;
-	if(counter >= 300 && counter < 480) temp(bodyTheta);
+	if(counter >= 300 && counter < 480) ttemp(bodyTheta);
 	if(counter >= 480 && counter < 510) bodyTheta = 15;
-	if(counter >= 510 && counter < 680) temp(bodyTheta);
+	if(counter >= 510 && counter < 680) ttemp(bodyTheta);
 }
 
 void neckAni(int counter) {
@@ -421,7 +437,7 @@ void timer(int unUsed) {
 	haAni(counter);
 	counter++;
 	glutPostRedisplay();
-	glutTimerFunc(timeStep, timer, 0);
+	if(counter < 710) glutTimerFunc(timeStep, timer, 0);
 }
 
 void reShape(int newWeight, int newHeight) {
@@ -464,9 +480,17 @@ void myKeyboard(unsigned char key, int x, int y) {
 		case 'p': //trackball z-axis
 		trackBallZ(-1);
 		break;
+		case 'v':
+		std::cout <<"?"<<std::endl;
+		if(axisView == 1) axisView = 0;
+		else axisView = 1;
+		break;
 		defalut:
 		break;
 	}
+	//ttttt++;
+	//std::cout<<ttttt<<std::endl;
+	glutPostRedisplay();
 
 }
 
@@ -493,20 +517,25 @@ void myMouse(int button, int state, int x, int y) {
 		default:
 		break;
 	}
-	std::cout << "(x, y) : " << x << ", "<< y<<std::endl;
+	glutPostRedisplay();
 }
 
 void moveCameraX(int check) {
+	std::cout << "<<start move CameraX>>" <<std::endl;
 	double vZ[3]; // zaxis in view coordinate
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
+	std::cout <<"viewUp vector : " <<viewUp[0] << ", "<<viewUp[1]<<", "<<viewUp[2]<<std::endl;
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
 	double d = length(temp, 3);
 	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
 	std::cout <<"xaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2]<<std::endl;
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i];
-		pref[i] += check *temp[i];
+		p0[i] += (double)check * temp[i];
+		pref[i] += (double)check *temp[i];
 	} //translation
+	std::cout << "p0 : " <<p0[0] <<", "<<p0[1] <<", "<<p0[2]<<std::endl;
+	std::cout << "pref : "<<pref[0]<<", "<<pref[1]<<", "<<pref[2]<<std::endl;
+	std::cout<< "<<end move CameraX>>" <<std::endl;
 }
 
 void moveCameraY(int check) {
@@ -520,8 +549,8 @@ void moveCameraY(int check) {
 	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
 	std::cout <<"yaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2] <<std::endl;
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i];
-		pref[i] += check * temp[i];
+		p0[i] += (double)check * temp[i];
+		pref[i] += (double)check * temp[i];
 	}
 }
 
@@ -530,8 +559,8 @@ void moveCameraZ(int check) {
 	for(int i = 0; i < 3; i++) temp[i] = p0[i] - pref[i]; //Z-axis in viewing coordinate
 	double d = length(temp, 3); //get distance
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i] / d;
-		pref[i] += check * temp[i] / d;
+		p0[i] += (double)check * temp[i] / d;
+		pref[i] += (double)check * temp[i] / d;
 	} //z - axis translation
 }
 
@@ -555,6 +584,7 @@ double length(double *v, int n) {
 }
 
 void trackBallZ(int check) {
+	std::cout<< "<<start trackBallZ>>" <<std::endl;
 	double QviewUp[4];
 	QviewUp[0] = 0.0;
 	for(int i = 1; i < 4; i++) QviewUp[i] = p0[i-1]+viewUp[i-1];
@@ -563,7 +593,10 @@ void trackBallZ(int check) {
 	for(int i = 0; i < 3; i++) rotAxis[i] = p0[i] - pref[i];
 	double d = length(rotAxis, 3);
 	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / d;
-	double rotAngle = 1.0 * check * PI / 180; 
+	std::cout << "rotAxis : "<<rotAxis[0] <<", " << rotAxis[1] << ", "<<rotAxis[2]<<std::endl;
+	double rotAngle = 1.0 *(double)check * PI / 180;
+	std::cout <<"rotAngle : "<<rotAngle<<std::endl;
+	std::cout <<cos(rotAngle/2) <<std::endl;
 	double qRot[4];
 	double qRotI[4];
 	qRot[0] = cos(rotAngle/2);
@@ -571,13 +604,12 @@ void trackBallZ(int check) {
 	qRotI[0] = qRot[0] / length(qRot, 4);
 	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot,4);
 	double* QviewUpNew = Qmulti(qRot, Qmulti(QviewUp, qRotI));
-	//std::cout <<"hi"<<std::endl;
-	std::cout<<QviewUpNew[1]<<", "<<QviewUpNew[2]<<", "<<QviewUpNew[3]<<std::endl;
+	std::cout<<QviewUpNew[0]<<", " << QviewUpNew[1]<<", "<<QviewUpNew[2]<<", "<<QviewUpNew[3]<<std::endl;
 	for(int i = 0; i < 3; i++) viewUp[i] = QviewUpNew[i+1] - p0[i];
 	d = length(viewUp, 3);
-	for(int i = 0; i< 3; i++) viewUp[i] = viewUp[i] / d;
-	//quaternian multi and get new point of QviewUp and update viewUp vector using new point and p0
-	//because trackballz doesn't change camera postion, only rotate the view up vector
+	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
+	std::cout<<"after viewUp : "<< viewUp[0] << ", "<<viewUp[1]<<", "<<viewUp[2]<<std::endl;
+	std::cout<< "<<end trackBallZ>>" <<std::endl;
 }//rot Axis is z-axis
 
 void trackBallXY() {
@@ -635,13 +667,13 @@ void trackBallXY() {
 		viewUp[i] = qViewUp[i+1] - q0new[i+1];
 	}
 	double d = length(viewUp, 3);
-	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
+	for(int i = 0; i<3; i++) viewUp[i] = viewUp[i]/d;
 	std::cout << "p0 : " << p0[0] <<", "<<p0[1] <<", "<<p0[2]<<std::endl;
 	std::cout << length(p0, 3) <<std::endl;
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
-	double* ret = (double *)malloc(sizeof(double) * 4);
+	/*double* ret = (double *)malloc(sizeof(double) * 4);
 	double w1 = q1[0];
 	double w2 = q2[0];
 	double v1[3];
@@ -654,7 +686,15 @@ double* Qmulti(double *q1, double *q2) {
 	double* temp = crossProduct(v1, v2);
 	for(int i = 1; i < 4; i++) ret[i] = w1 * v2[i-1] + w2 * v1[i-1] + temp[i-1];
 	return ret;
+	*/
+	double *ret = (double *)malloc(sizeof(double) * 4);
+	ret[0] = q1[0]*q2[0] - q1[1]*q2[1] -q1[2]*q2[2] - q1[3]*q2[3];
+	ret[1] = q1[0]*q2[1] + q1[1]*q2[0] +q1[2]*q2[3] - q1[3]*q2[2];
+	ret[2] = q1[0]*q2[2] + q1[2]*q2[0] +q1[3]*q2[1] - q1[1]*q2[3];
+	ret[3] = q1[0]*q2[3] + q1[3]*q2[0] +q1[1]*q2[2] - q1[2]*q2[1];
+	return ret;
 }
+
 
 void setView(double x0, double y0, double z0, double xref, double yref, double zref, double x, double y, double z) {
 	p0[0] = x0;
