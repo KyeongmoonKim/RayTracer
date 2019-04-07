@@ -119,6 +119,7 @@ void human() {
 		glEnd();
 	}
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
+	//gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2], 0, 1, 0);
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//for background
@@ -481,7 +482,6 @@ void myKeyboard(unsigned char key, int x, int y) {
 		trackBallZ(-1);
 		break;
 		case 'v':
-		std::cout <<"?"<<std::endl;
 		if(axisView == 1) axisView = 0;
 		else axisView = 1;
 		break;
@@ -521,9 +521,11 @@ void myMouse(int button, int state, int x, int y) {
 }
 
 void moveCameraX(int check) {
-	std::cout << "<<start move CameraX>>" <<std::endl;
+	std::cout << "start move CameraX" <<std::endl;
 	double vZ[3]; // zaxis in view coordinate
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
+	std::cout <<"before p0 : " <<p0[0]<<", " << p0[1] <<", "<<p0[2] <<std::endl;
+	std::cout <<"before pref : "<<pref[0]<<", "<< pref[1]<<", "<<pref[2]<<std::endl;
 	std::cout <<"viewUp vector : " <<viewUp[0] << ", "<<viewUp[1]<<", "<<viewUp[2]<<std::endl;
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
 	double d = length(temp, 3);
@@ -533,9 +535,9 @@ void moveCameraX(int check) {
 		p0[i] += (double)check * temp[i];
 		pref[i] += (double)check *temp[i];
 	} //translation
-	std::cout << "p0 : " <<p0[0] <<", "<<p0[1] <<", "<<p0[2]<<std::endl;
-	std::cout << "pref : "<<pref[0]<<", "<<pref[1]<<", "<<pref[2]<<std::endl;
-	std::cout<< "<<end move CameraX>>" <<std::endl;
+	std::cout << "after p0 : " <<p0[0] <<", "<<p0[1] <<", "<<p0[2]<<std::endl;
+	std::cout << "after pref : "<<pref[0] <<", "<<pref[1]<<", "<<pref[2]<<std::endl;
+	std::cout << std::endl;
 }
 
 void moveCameraY(int check) {
@@ -584,7 +586,43 @@ double length(double *v, int n) {
 }
 
 void trackBallZ(int check) {
+	std::cout << "<<trackBallZ>>"<<std::endl;
+	double rotAxis[3];
+	double rotAngle = 1.0 * (double)check * PI / 180.0;
+	std::cout << "rotAngle : "<<rotAngle<<std::endl;
+	for(int i = 0; i < 3; i++) rotAxis[i] = p0[i]-pref[i];
+	double d = length(rotAxis, 3);
+	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i]/d;
+	double* xAxis = crossProduct(viewUp, rotAxis);
+	d = length(xAxis, 3);
+	for(int i = 0; i < 3; i++) xAxis[i] = xAxis[i]/d;
+	double* yAxis = crossProduct(rotAxis, xAxis);
+	d = length(yAxis, 3);
+	for(int i = 0; i < 3; i++) yAxis[i] = yAxis[i]/d;
+	double qQ[4]; //the quaternion of the point that will be rotated.
+	qQ[0] = 0.0;
+	for(int i = 1; i < 4; i++) qQ[i] = p0[i-1] + yAxis[i-1]*5.0;
+	std::cout << "before rotation point of viewup : "<<qQ[1]<<", "<<qQ[2]<<", "<<qQ[3]<<std::endl;
+	double qRot[4];
+	double qRotI[4];
+	qRot[0] = cos(rotAngle / 2.0);
+	for(int i = 1; i < 4; i++) qRot[i] = rotAxis[i-1] * sin(rotAngle/2.0);
+	d = length(qRot, 4);
+	qRotI[0] = qRot[0] / d;
+	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / d;
+	double* qQnew = Qmulti(qRot, Qmulti(qQ, qRotI));
+	for(int i = 0; i < 3; i++) viewUp[i] = qQnew[i+1] - p0[i];
+	d = length(viewUp, 3);
+	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
+	std::cout<< "viewUP : " <<viewUp[0] << ", " << viewUp[1] <<", "<<viewUp[2]<<std::endl;
+	std::cout<< "after rotation point of viewup : "<<qQnew[1] <<", " <<qQnew[2]<<", "<<qQnew[3]<<std::endl;
+	std::cout<< std::endl;
+}
+
+void oldTrackBallZ(int check) {
 	std::cout<< "<<start trackBallZ>>" <<std::endl;
+	std::cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<std::endl;
+	std::cout <<"pref : "<<pref[0] <<", "<<pref[1]<<", "<<pref[2]<<std::endl;
 	double QviewUp[4];
 	QviewUp[0] = 0.0;
 	for(int i = 1; i < 4; i++) QviewUp[i] = p0[i-1]+viewUp[i-1];
@@ -601,10 +639,13 @@ void trackBallZ(int check) {
 	double qRotI[4];
 	qRot[0] = cos(rotAngle/2);
 	for(int i = 1; i < 4; i++) qRot[i] = sin(rotAngle/2) * rotAxis[i-1];
-	qRotI[0] = qRot[0] / length(qRot, 4);
-	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot,4);
+	qRotI[0] = -1.0*qRot[0] / length(qRot, 4);
+	for(int i = 1; i < 4; i++) qRotI[i] = 1.0 * qRot[i] / length(qRot,4);
+	//double len = length(QviewUp,4);
+	//for(int i = 0; i < 4; i++) QviewUp[i] = QviewUp[i] / len;
 	double* QviewUpNew = Qmulti(qRot, Qmulti(QviewUp, qRotI));
-	std::cout<<QviewUpNew[0]<<", " << QviewUpNew[1]<<", "<<QviewUpNew[2]<<", "<<QviewUpNew[3]<<std::endl;
+	std::cout <<"after viewupPoint : "<<QviewUpNew[0]<<", " << QviewUpNew[1]<<", "<<QviewUpNew[2]<<", "<<QviewUpNew[3]<<std::endl;
+	//for(int i = 1; i < 4; i++) QviewUpNew[i] = QviewUpNew[i] * len;
 	for(int i = 0; i < 3; i++) viewUp[i] = QviewUpNew[i+1] - p0[i];
 	d = length(viewUp, 3);
 	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
@@ -613,37 +654,39 @@ void trackBallZ(int check) {
 }//rot Axis is z-axis
 
 void trackBallXY() {
+
 	double vZ[3];
 	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
 	double *xAxis = crossProduct(viewUp, vZ);
 	double dx = length(xAxis, 3);
 	for(int i = 0; i < 3; i++) xAxis[i] = xAxis[i]/dx;
-	std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", " << xAxis[2] << std::endl;
+	//std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", " << xAxis[2] << std::endl;
 	double *yAxis = crossProduct(vZ, xAxis);
 	double dy = length(yAxis, 3);
 	for(int i = 0; i < 3; i++) yAxis[i] = yAxis[i]/dy;
-	std::cout <<"yaxis : " << yAxis[0] << ", " << yAxis[1] << ", "<<yAxis[2] << std::endl;
+	//std::cout <<"yaxis : " << yAxis[0] << ", " << yAxis[1] << ", "<<yAxis[2] << std::endl;
 	double dragedP[3];
 	for(int i = 0; i < 3; i++) {
 		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
+		//dragedP[i] = p0[i] + xAxis[i] * 3.0;
 		//because zero point is most left-up direction window coordicnate, yAxis[i] diff be substracted not added!
 	}
 	double dragedV[3];
-	std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
-	std::cout << "pdraged : " << dragedP[0] << ", "<<dragedP[1] << ", "<<dragedP[2]<<std::endl;
+	//std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
+	//std::cout << "pdraged : " << dragedP[0] << ", "<<dragedP[1] << ", "<<dragedP[2]<<std::endl;
 	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
 	//upper section is codes for making dragged point and vector
 	double* rotAxis = crossProduct(vZ, dragedV); //rotAxis, and using reference point pref.
-	std::cout << dotProduct(vZ, dragedV)<< " "<<  length(rotAxis, 3)<<std::endl;
+	//std::cout << dotProduct(vZ, dragedV)<< " "<<  length(rotAxis, 3)<<std::endl;
 	double cs = dotProduct(vZ, dragedV) / (length(vZ,3) * length(dragedV, 3));
 	double sn = length(rotAxis, 3) / (length(vZ, 3) * length(dragedV, 3));
 	double rotAngle = -1.0 * atan2(sn, cs);//radian value
 	
-	std::cout << cs << " " << sn <<std::endl;
-	std::cout <<"angle : "<< rotAngle * 180 / PI << std::endl;
+	//std::cout << cs << " " << sn <<std::endl;
+	//std::cout <<"angle : "<< rotAngle * 180 / PI << std::endl;
 	double rotLen = length(rotAxis, 3);
 	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / rotLen;
-	std::cout<<"rot axis : "<<rotAxis[0]<<", "<<rotAxis[1]<<", "<<rotAxis[2]<<std::endl;
+	//std::cout<<"rot axis : "<<rotAxis[0]<<", "<<rotAxis[1]<<", "<<rotAxis[2]<<std::endl;
 	//quaternian part start
 	
 	double qRot[4]; //quaternian for rotAxis and rotAngle
@@ -668,12 +711,11 @@ void trackBallXY() {
 	}
 	double d = length(viewUp, 3);
 	for(int i = 0; i<3; i++) viewUp[i] = viewUp[i]/d;
-	std::cout << "p0 : " << p0[0] <<", "<<p0[1] <<", "<<p0[2]<<std::endl;
-	std::cout << length(p0, 3) <<std::endl;
+	std::cout <<std::endl;
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
-	/*double* ret = (double *)malloc(sizeof(double) * 4);
+	double* ret = (double *)malloc(sizeof(double) * 4);
 	double w1 = q1[0];
 	double w2 = q2[0];
 	double v1[3];
@@ -686,13 +728,13 @@ double* Qmulti(double *q1, double *q2) {
 	double* temp = crossProduct(v1, v2);
 	for(int i = 1; i < 4; i++) ret[i] = w1 * v2[i-1] + w2 * v1[i-1] + temp[i-1];
 	return ret;
-	*/
+	/*
 	double *ret = (double *)malloc(sizeof(double) * 4);
 	ret[0] = q1[0]*q2[0] - q1[1]*q2[1] -q1[2]*q2[2] - q1[3]*q2[3];
 	ret[1] = q1[0]*q2[1] + q1[1]*q2[0] +q1[2]*q2[3] - q1[3]*q2[2];
 	ret[2] = q1[0]*q2[2] + q1[2]*q2[0] +q1[3]*q2[1] - q1[1]*q2[3];
 	ret[3] = q1[0]*q2[3] + q1[3]*q2[0] +q1[1]*q2[2] - q1[2]*q2[1];
-	return ret;
+	return ret;*/
 }
 
 
