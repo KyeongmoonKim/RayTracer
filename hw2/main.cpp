@@ -488,8 +488,6 @@ void myKeyboard(unsigned char key, int x, int y) {
 		defalut:
 		break;
 	}
-	//ttttt++;
-	//std::cout<<ttttt<<std::endl;
 	glutPostRedisplay();
 
 }
@@ -526,7 +524,6 @@ void moveCameraX(int check) {
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
 	double d = length(temp, 3);
 	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
-	std::cout <<"xaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2]<<std::endl;
 	for(int i = 0; i < 3; i++) {
 		p0[i] += (double)check * temp[i];
 		pref[i] += (double)check *temp[i];
@@ -595,6 +592,7 @@ void trackBallZ(int check) {
 	double qQ[4]; //the quaternion of the point that will be rotated.
 	qQ[0] = 0.0;
 	for(int i = 1; i < 4; i++) qQ[i] = p0[i-1] + yAxis[i-1] + trans[i-1]; //get the point that will be rotated
+	//trans vector is added because of the rotation center
 	double qRot[4]; //quaternion of the rotation
 	double qRotI[4]; //inverse of the rotation quaternion
 	qRot[0] = cos(rotAngle / 2.0);
@@ -603,83 +601,39 @@ void trackBallZ(int check) {
 	qRotI[0] = qRot[0] / d;
 	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / d;
 	double* qQnew = Qmulti(qRot, Qmulti(qQ, qRotI));
-	for(int i = 0; i < 3; i++) viewUp[i] = qQnew[i+1] - p0[i] - trans[i];
+	for(int i = 0; i < 3; i++) viewUp[i] = (qQnew[i+1]-trans[i]) - p0[i]; //qQnew-trans is the point rotated.
 	d = length(viewUp, 3);
 	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
 }
 
-void oldTrackBallZ(int check) {
-	std::cout<< "<<start trackBallZ>>" <<std::endl;
-	std::cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<std::endl;
-	std::cout <<"pref : "<<pref[0] <<", "<<pref[1]<<", "<<pref[2]<<std::endl;
-	double QviewUp[4];
-	QviewUp[0] = 0.0;
-	for(int i = 1; i < 4; i++) QviewUp[i] = p0[i-1]+viewUp[i-1];
-	std::cout <<"before point : " << QviewUp[1] << ", "<<QviewUp[2] <<", "<<QviewUp[3]<<std::endl;
-	double rotAxis[3];
-	for(int i = 0; i < 3; i++) rotAxis[i] = p0[i] - pref[i];
-	double d = length(rotAxis, 3);
-	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / d;
-	std::cout << "rotAxis : "<<rotAxis[0] <<", " << rotAxis[1] << ", "<<rotAxis[2]<<std::endl;
-	double rotAngle = 1.0 *(double)check * PI / 180;
-	std::cout <<"rotAngle : "<<rotAngle<<std::endl;
-	std::cout <<cos(rotAngle/2) <<std::endl;
-	double qRot[4];
-	double qRotI[4];
-	qRot[0] = cos(rotAngle/2);
-	for(int i = 1; i < 4; i++) qRot[i] = sin(rotAngle/2) * rotAxis[i-1];
-	qRotI[0] = -1.0*qRot[0] / length(qRot, 4);
-	for(int i = 1; i < 4; i++) qRotI[i] = 1.0 * qRot[i] / length(qRot,4);
-	//double len = length(QviewUp,4);
-	//for(int i = 0; i < 4; i++) QviewUp[i] = QviewUp[i] / len;
-	double* QviewUpNew = Qmulti(qRot, Qmulti(QviewUp, qRotI));
-	std::cout <<"after viewupPoint : "<<QviewUpNew[0]<<", " << QviewUpNew[1]<<", "<<QviewUpNew[2]<<", "<<QviewUpNew[3]<<std::endl;
-	//for(int i = 1; i < 4; i++) QviewUpNew[i] = QviewUpNew[i] * len;
-	for(int i = 0; i < 3; i++) viewUp[i] = QviewUpNew[i+1] - p0[i];
-	d = length(viewUp, 3);
-	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
-	std::cout<<"after viewUp : "<< viewUp[0] << ", "<<viewUp[1]<<", "<<viewUp[2]<<std::endl;
-	std::cout<< "<<end trackBallZ>>" <<std::endl;
-}//rot Axis is z-axis
-
 void trackBallXY() {
-
-	double vZ[3];
-	double trans[3];
+	double vZ[3]; //Z-axis of the camera
+	double trans[3]; //vector that pref to zero-point
 	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
 	for(int i=0; i<3; i++) trans[i] = 0.0 - pref[i];
 	double *xAxis = crossProduct(viewUp, vZ);
 	double dx = length(xAxis, 3);
 	for(int i = 0; i < 3; i++) xAxis[i] = xAxis[i]/dx;
-	//std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", " << xAxis[2] << std::endl;
 	double *yAxis = crossProduct(vZ, xAxis);
 	double dy = length(yAxis, 3);
 	for(int i = 0; i < 3; i++) yAxis[i] = yAxis[i]/dy;
-	//std::cout <<"yaxis : " << yAxis[0] << ", " << yAxis[1] << ", "<<yAxis[2] << std::endl;
-	double dragedP[3];
+	double dragedP[3]; //point which moved by dragging
 	for(int i = 0; i < 3; i++) {
 		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
-		//dragedP[i] = p0[i] + xAxis[i] * 3.0;
-		//because zero point is most left-up direction window coordicnate, yAxis[i] diff be substracted not added!
+		//yAxis[i] diff be substracted because of the window coordinate system.
 	}
-	double dragedV[3];
-	//std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
-	//std::cout << "pdraged : " << dragedP[0] << ", "<<dragedP[1] << ", "<<dragedP[2]<<std::endl;
+	double dragedV[3]; //vector pref to dragedP
 	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
+	
 	//upper section is codes for making dragged point and vector
 	double* rotAxis = crossProduct(vZ, dragedV); //rotAxis, and using reference point pref.
-	//std::cout << dotProduct(vZ, dragedV)<< " "<<  length(rotAxis, 3)<<std::endl;
-	double cs = dotProduct(vZ, dragedV) / (length(vZ,3) * length(dragedV, 3));
-	double sn = length(rotAxis, 3) / (length(vZ, 3) * length(dragedV, 3));
-	double rotAngle = -1.0 * atan2(sn, cs);//radian value
-	
-	//std::cout << cs << " " << sn <<std::endl;
-	//std::cout <<"angle : "<< rotAngle * 180 / PI << std::endl;
+	double cs = dotProduct(vZ, dragedV) / (length(vZ,3) * length(dragedV, 3)); //cosin value of the rotation angle
+	double sn = length(rotAxis, 3) / (length(vZ, 3) * length(dragedV, 3)); //sin value of the rotation angle
+	double rotAngle = -1.0 * atan2(sn, cs);
 	double rotLen = length(rotAxis, 3);
-	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / rotLen;
-	//std::cout<<"rot axis : "<<rotAxis[0]<<", "<<rotAxis[1]<<", "<<rotAxis[2]<<std::endl;
+	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / rotLen; //normalization
+
 	//quaternian part start
-	
 	double qRot[4]; //quaternian for rotAxis and rotAngle
 	double qP0[4]; //quaternian for p0 //must be changed to unit quaternian.
 	double qPviewUp[4]; //quaternian for p0 + viewUp
@@ -689,20 +643,19 @@ void trackBallXY() {
 	qPviewUp[0] = 0.0;
 	for(int i = 1; i < 4; i++) {
 		qRot[i] = rotAxis[i-1] * sin(rotAngle/2);
-		qP0[i] = p0[i-1]+trans[i-1];
-		qPviewUp[i] = p0[i-1] + viewUp[i-1]+trans[i-1];
+		qP0[i] = p0[i-1]+trans[i-1]; //trans vector for the rotation center
+		qPviewUp[i] = p0[i-1] + viewUp[i-1]+trans[i-1]; //trans vector for the rotation center
 	}
 	qRotI[0] = qRot[0] / length(qRot, 4);
 	for(int i = 1; i< 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot, 4);
 	double* q0new = Qmulti(qRot, Qmulti(qP0, qRotI));
 	double* qViewUp = Qmulti(qRot, Qmulti(qPviewUp, qRotI));
 	for(int i = 0; i < 3; i++) {
-		p0[i] = q0new[i+1]-trans[i];
-		viewUp[i] = qViewUp[i+1] - q0new[i+1];
+		p0[i] = q0new[i+1]-trans[i]; //new p0
+		viewUp[i] = qViewUp[i+1] - q0new[i+1]; //vector doesn't need the transvector
 	}
 	double d = length(viewUp, 3);
 	for(int i = 0; i<3; i++) viewUp[i] = viewUp[i]/d;
-	std::cout <<std::endl;
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
