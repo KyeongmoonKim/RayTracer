@@ -29,7 +29,6 @@ double ptClick[3];
 double factor = 20.0; //using normalize v1
 double zoomAngle = 45.0;
 int axisView = 0;
-int ttttt;
 //viewing functions
 void moveCameraX(int check);
 void moveCameraY(int check);
@@ -38,8 +37,10 @@ double* crossProduct(double *v1, double *v2);
 double dotProduct(double *v1, double *v2);
 void trackBallXY();
 void trackBallZ(int check);
+void moveTbCenter(int check);
 double length(double *v, int n); //length of n-dimension vector
 double* Qmulti(double *q1, double *q2);
+
 
 //when camera moves, the ratio of the object change
 //when angle changes, the ratio of the objectdoesn't change
@@ -489,6 +490,12 @@ void myKeyboard(unsigned char key, int x, int y) {
 		if(axisView == 1) axisView = 0;
 		else axisView = 1;
 		break;
+		case 'n':
+		moveTbCenter(-1);
+		break;
+		case 'm':
+		moveTbCenter(1);
+		break;
 		defalut:
 		break;
 	}
@@ -599,7 +606,14 @@ double length(double *v, int n) {
 	for(int i = 0; i < n; i++) ret += v[i]*v[i];
 	return sqrt(ret);
 }
-
+void moveTbCenter(int check) {
+	double v[3];
+	for(int i = 0; i < 3; i++) v[i] = p0[i] - pref[i];
+	double d = length(v, 3);
+	if(check == -1 && fabs(d - 1.0) < 0.001) return;
+	for(int i = 0; i < 3; i++) pref[i] += (double)check * v[i] / d;
+	std::cout<<pref[0]<<", "<<pref[1]<<", "<<pref[2]<<std::endl;
+}
 void trackBallZ(int check) {
 	double rotAxis[3]; //axis of the rotation
 	double trans[3]; //vector which moves pref to zero-point
