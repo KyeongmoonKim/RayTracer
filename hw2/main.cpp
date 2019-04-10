@@ -21,12 +21,9 @@ double handleMove;
 double p0[3]; //gluLookAt zero-point
 double pref[3]; //gluLookAt ref-point
 double viewUp[3]; //viewUpvector
-double bP0[3];
-double bPref[3];
-double bViewUp[3];
 double diff[3];
 double ptClick[3];
-double factor = 20.0; //using normalize v1
+double factor = 2.0; //using normalize v1
 double zoomAngle = 45.0;
 int axisView = 0;
 //viewing functions
@@ -451,7 +448,6 @@ void reShape(int newWeight, int newHeight) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(zoomAngle, (GLfloat)newWeight/newHeight, 0.1, 400.0);
-	factor = newWeight / 10.0;
 }
 
 void myKeyboard(unsigned char key, int x, int y) {
@@ -505,16 +501,18 @@ void myKeyboard(unsigned char key, int x, int y) {
 
 void myDrag(int x, int y) {
 	std::cout<<"myDrag"<<std::endl;
-	std::cout<< x <<", "<<y<<std::endl;
+	std::cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<std::endl;
+	std::cout<<"ptClick : "<<ptClick[0]<<", "<<ptClick[1]<<", "<<ptClick[2]<<std::endl;
+	std::cout<<"x , y : "<<x<<", "<<y<<std::endl;
+	std::cout<<"factor : "<<factor<<std::endl;
 	diff[0] = ((double)x - ptClick[0])/factor;
 	diff[1] = ((double)y - ptClick[1])/factor;
 	diff[2] = 0.0;
+	std::cout<<"diff : "<<diff[0] <<", "<<diff[1]<<", "<<diff[2]<<std::endl;
+	ptClick[0] = (double)x;
+	ptClick[1] = (double)y;
+	ptClick[2] = 0.0;
 	if(diff[0] !=0.0 || diff[1] != 0.0 || diff[2] != 0.0) {
-		for(int i = 0; i < 3; i++) {
-			p0[i] = bP0[i];
-			pref[i] = bPref[i];
-			viewUp[i] = bViewUp[i];
-		}
 		trackBallXY();
 	}
 	glutPostRedisplay();
@@ -527,20 +525,7 @@ void myMouse(int button, int state, int x, int y) {
 			ptClick[0] = (double)x;
 			ptClick[1] = (double)y;
 			ptClick[2] = 0.0;
-			for(int i = 0; i < 3; i++) {
-				bP0[i] = p0[i];
-				bPref[i] = pref[i];
-				bViewUp[i] = viewUp[i];
-			}
 		}
-		/*else if(state==GLUT_UP) 
-		{
-			diff[0] = ((double)x - ptClick[0]) / factor;
-			diff[1] = ((double)y - ptClick[1]) / factor;
-			diff[2] = 0.0;
-			if(diff[0] != 0 || diff[1] != 0 || diff[2] != 0)
-				trackBallXY();
-		}*/
 		break;
 		case GLUT_RIGHT_BUTTON:
 		break;
@@ -661,6 +646,7 @@ void trackBallXY() {
 		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
 		//yAxis[i] diff be substracted because of the window coordinate system.
 	}
+	std::cout<<"draged P: "<<dragedP[0]<<", "<<dragedP[1]<<", "<<dragedP[2]<<std::endl;
 	double dragedV[3]; //vector pref to dragedP
 	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
 	

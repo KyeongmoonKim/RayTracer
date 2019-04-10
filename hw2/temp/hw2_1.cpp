@@ -21,9 +21,14 @@ double handleMove;
 double p0[3]; //gluLookAt zero-point
 double pref[3]; //gluLookAt ref-point
 double viewUp[3]; //viewUpvector
+double bP0[3];
+double bPref[3];
+double bViewUp[3];
 double diff[3];
-double factor = 70.0; //using normalize v1
+double ptClick[3];
+double factor = 20.0; //using normalize v1
 double zoomAngle = 45.0;
+int axisView = 0;
 //viewing functions
 void moveCameraX(int check);
 void moveCameraY(int check);
@@ -32,8 +37,10 @@ double* crossProduct(double *v1, double *v2);
 double dotProduct(double *v1, double *v2);
 void trackBallXY();
 void trackBallZ(int check);
+void moveTbCenter(int check);
 double length(double *v, int n); //length of n-dimension vector
 double* Qmulti(double *q1, double *q2);
+
 
 //when camera moves, the ratio of the object change
 //when angle changes, the ratio of the objectdoesn't change
@@ -102,7 +109,22 @@ void human() {
 	gluPerspective(zoomAngle, 1.0, 0.1, 400); //temp zoom in
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	if(axisView == 1) {
+		double tV[3];
+		for(int i = 0; i < 3; i++) tV[i] = p0[i] - pref[i];
+		double d = -1.0 * length(tV, 3);
+		std::cout<<d<<std::endl;
+		std::cout<<"curr viewUp : "<< viewUp[0] <<", "<<viewUp[1] <<", "<<viewUp[2]<<std::endl;
+		glBegin(GL_LINES);
+			glColor3f(1.0, 0.0, 1.0);
+			glVertex3f(0, 0, d);
+			glVertex3f(0, 3, d);
+			glVertex3f(0, 0, d);
+			glVertex3f(3, 0, d); 
+		glEnd();
+	}
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
+	//gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2], 0, 1, 0);
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//for background
@@ -369,7 +391,7 @@ void human() {
 	glutSwapBuffers();
 }
 
-void temp(double theta) {
+void ttemp(double theta) {
 	double d = 2.0 * 4.0 * PI / 180.0;
 	double currD = sqrt(rotX*rotX + rotZ*rotZ);
 	double temp1 = bodyAngle * PI / 180.0;
@@ -385,12 +407,12 @@ void bodyAni(int counter) {
 	}
 	if(counter>=180 && counter < 250) {
 		if(counter%5==0) bodyTheta += 1.0; 
-		temp(bodyTheta);
+		ttemp(bodyTheta);
 	} 
 	if(counter >= 250 && counter < 300) bodyTheta = 20;
-	if(counter >= 300 && counter < 480) temp(bodyTheta);
+	if(counter >= 300 && counter < 480) ttemp(bodyTheta);
 	if(counter >= 480 && counter < 510) bodyTheta = 15;
-	if(counter >= 510 && counter < 680) temp(bodyTheta);
+	if(counter >= 510 && counter < 680) ttemp(bodyTheta);
 }
 
 void neckAni(int counter) {
@@ -421,7 +443,7 @@ void timer(int unUsed) {
 	haAni(counter);
 	counter++;
 	glutPostRedisplay();
-	glutTimerFunc(timeStep, timer, 0);
+	if(counter < 710) glutTimerFunc(timeStep, timer, 0);
 }
 
 void reShape(int newWeight, int newHeight) {
@@ -459,33 +481,57 @@ void myKeyboard(unsigned char key, int x, int y) {
 		if(zoomAngle > 1) zoomAngle -= 1.0;
 		break;
 		case 'o': //trackball z-axis
-		trackBallZ(1);
+		trackBallZ(-1);
 		break;
 		case 'p': //trackball z-axis
-		trackBallZ(-1);
+		trackBallZ(1);
+		break;
+		case 'v':
+		if(axisView == 1) axisView = 0;
+		else axisView = 1;
+		break;
+		case 'n':
+		moveTbCenter(-1);
+		break;
+		case 'm':
+		moveTbCenter(1);
 		break;
 		defalut:
 		break;
 	}
+	glutPostRedisplay();
 
 }
 
+void myDrag(int x, int y) {
+	std::cout<<"myDrag"<<std::endl;
+	std::cout<< x <<", "<<y<<std::endl;
+	diff[0] = ((double)x - ptClick[0])/factor;
+	diff[1] = ((double)y - ptClick[1])/factor;
+	diff[2] = 0.0;
+	if(diff[0] !=0.0 || diff[1] != 0.0 || diff[2] != 0.0) {
+		for(int i = 0; i < 3; i++) {
+			p0[i] = bP0[i];
+			pref[i] = bPref[i];
+			viewUp[i] = bViewUp[i];
+		}
+		trackBallXY();
+	}
+	glutPostRedisplay();
+	std::cout<<std::endl;
+}
 void myMouse(int button, int state, int x, int y) {
 	switch(button) {
 		case GLUT_LEFT_BUTTON:
 		if(state==GLUT_DOWN) {
-			diff[0] = (double)x;
-			diff[1] = (double)y;
-			diff[2] = 0.0;
-		}
-		else if(state==GLUT_UP) 
-		{
-			diff[0] = ((double)x - diff[0]) / factor;
-			diff[1] = ((double)y - diff[1]) / factor;
-			diff[2] = 0.0;
-			std::cout << "diff : " << diff[0] << ", " << diff[1] <<", "<<diff[2]<<std::endl;
-			if(diff[0] != 0 || diff[1] != 0 || diff[2] != 0)
-				trackBallXY();
+			ptClick[0] = (double)x;
+			ptClick[1] = (double)y;
+			ptClick[2] = 0.0;
+			for(int i = 0; i < 3; i++) {
+				bP0[i] = p0[i];
+				bPref[i] = pref[i];
+				bViewUp[i] = viewUp[i];
+			}
 		}
 		break;
 		case GLUT_RIGHT_BUTTON:
@@ -493,7 +539,7 @@ void myMouse(int button, int state, int x, int y) {
 		default:
 		break;
 	}
-	std::cout << "(x, y) : " << x << ", "<< y<<std::endl;
+	glutPostRedisplay();
 }
 
 void moveCameraX(int check) {
@@ -502,10 +548,9 @@ void moveCameraX(int check) {
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
 	double d = length(temp, 3);
 	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
-	std::cout <<"xaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2]<<std::endl;
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i];
-		pref[i] += check *temp[i];
+		p0[i] += (double)check * temp[i];
+		pref[i] += (double)check *temp[i];
 	} //translation
 }
 
@@ -520,8 +565,8 @@ void moveCameraY(int check) {
 	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
 	std::cout <<"yaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2] <<std::endl;
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i];
-		pref[i] += check * temp[i];
+		p0[i] += (double)check * temp[i];
+		pref[i] += (double)check * temp[i];
 	}
 }
 
@@ -530,8 +575,8 @@ void moveCameraZ(int check) {
 	for(int i = 0; i < 3; i++) temp[i] = p0[i] - pref[i]; //Z-axis in viewing coordinate
 	double d = length(temp, 3); //get distance
 	for(int i = 0; i < 3; i++) {
-		p0[i] += check * temp[i] / d;
-		pref[i] += check * temp[i] / d;
+		p0[i] += (double)check * temp[i] / d;
+		pref[i] += (double)check * temp[i] / d;
 	} //z - axis translation
 }
 
@@ -553,67 +598,73 @@ double length(double *v, int n) {
 	for(int i = 0; i < n; i++) ret += v[i]*v[i];
 	return sqrt(ret);
 }
-
+void moveTbCenter(int check) {
+	double v[3];
+	for(int i = 0; i < 3; i++) v[i] = p0[i] - pref[i];
+	double d = length(v, 3);
+	if(check == -1 && fabs(d - 1.0) < 0.001) return;
+	for(int i = 0; i < 3; i++) pref[i] += (double)check * v[i] / d;
+	std::cout<<pref[0]<<", "<<pref[1]<<", "<<pref[2]<<std::endl;
+}
 void trackBallZ(int check) {
-	double QviewUp[4];
-	QviewUp[0] = 0.0;
-	for(int i = 1; i < 4; i++) QviewUp[i] = p0[i-1]+viewUp[i-1];
-	std::cout <<"before point : " << QviewUp[1] << ", "<<QviewUp[2] <<", "<<QviewUp[3]<<std::endl;
-	double rotAxis[3];
-	for(int i = 0; i < 3; i++) rotAxis[i] = p0[i] - pref[i];
+	double rotAxis[3]; //axis of the rotation
+	double trans[3]; //vector which moves pref to zero-point
+	for(int i = 0; i < 3; i++) trans[i] = 0.0 - pref[i];
+	double rotAngle = 1.0 * (double)check * PI / 180.0; //the unit of the rotation
+	for(int i = 0; i < 3; i++) rotAxis[i] = p0[i]-pref[i];
 	double d = length(rotAxis, 3);
-	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / d;
-	double rotAngle = 1.0 * check * PI / 180; 
-	double qRot[4];
-	double qRotI[4];
-	qRot[0] = cos(rotAngle/2);
-	for(int i = 1; i < 4; i++) qRot[i] = sin(rotAngle/2) * rotAxis[i-1];
-	qRotI[0] = qRot[0] / length(qRot, 4);
-	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot,4);
-	double* QviewUpNew = Qmulti(qRot, Qmulti(QviewUp, qRotI));
-	//std::cout <<"hi"<<std::endl;
-	std::cout<<QviewUpNew[1]<<", "<<QviewUpNew[2]<<", "<<QviewUpNew[3]<<std::endl;
-	for(int i = 0; i < 3; i++) viewUp[i] = QviewUpNew[i+1] - p0[i];
+	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i]/d; //normalization
+	double* xAxis = crossProduct(viewUp, rotAxis);
+	d = length(xAxis, 3);
+	for(int i = 0; i < 3; i++) xAxis[i] = xAxis[i]/d;
+	double* yAxis = crossProduct(rotAxis, xAxis); //the Y-axis of the camera coordinate system
+	d = length(yAxis, 3);
+	for(int i = 0; i < 3; i++) yAxis[i] = yAxis[i]/d;
+	double qQ[4]; //the quaternion of the point that will be rotated.
+	qQ[0] = 0.0;
+	for(int i = 1; i < 4; i++) qQ[i] = p0[i-1] + yAxis[i-1] + trans[i-1]; //get the point that will be rotated
+	//trans vector is added because of the rotation center
+	double qRot[4]; //quaternion of the rotation
+	double qRotI[4]; //inverse of the rotation quaternion
+	qRot[0] = cos(rotAngle / 2.0);
+	for(int i = 1; i < 4; i++) qRot[i] = rotAxis[i-1] * sin(rotAngle/2.0);
+	d = length(qRot, 4);
+	qRotI[0] = qRot[0] / d;
+	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / d;
+	double* qQnew = Qmulti(qRot, Qmulti(qQ, qRotI));
+	for(int i = 0; i < 3; i++) viewUp[i] = (qQnew[i+1]-trans[i]) - p0[i]; //qQnew-trans is the point rotated.
 	d = length(viewUp, 3);
-	for(int i = 0; i< 3; i++) viewUp[i] = viewUp[i] / d;
-	//quaternian multi and get new point of QviewUp and update viewUp vector using new point and p0
-	//because trackballz doesn't change camera postion, only rotate the view up vector
-}//rot Axis is z-axis
+	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
+}
 
 void trackBallXY() {
-	double vZ[3];
+	double vZ[3]; //Z-axis of the camera
+	double trans[3]; //vector that pref to zero-point
 	for(int i=0; i<3; i++) vZ[i] = p0[i] - pref[i];
+	for(int i=0; i<3; i++) trans[i] = 0.0 - pref[i];
 	double *xAxis = crossProduct(viewUp, vZ);
 	double dx = length(xAxis, 3);
 	for(int i = 0; i < 3; i++) xAxis[i] = xAxis[i]/dx;
-	std::cout <<"xaxis : " << xAxis[0] << ", " << xAxis[1] << ", " << xAxis[2] << std::endl;
 	double *yAxis = crossProduct(vZ, xAxis);
 	double dy = length(yAxis, 3);
 	for(int i = 0; i < 3; i++) yAxis[i] = yAxis[i]/dy;
-	std::cout <<"yaxis : " << yAxis[0] << ", " << yAxis[1] << ", "<<yAxis[2] << std::endl;
-	double dragedP[3];
+	double dragedP[3]; //point which moved by dragging
 	for(int i = 0; i < 3; i++) {
 		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
-		//because zero point is most left-up direction window coordicnate, yAxis[i] diff be substracted not added!
+		//yAxis[i] diff be substracted because of the window coordinate system.
 	}
-	double dragedV[3];
-	std::cout << "p0 : " << p0[0] << ", " <<p0[1]<<", "<<p0[2]<<std::endl;
-	std::cout << "pdraged : " << dragedP[0] << ", "<<dragedP[1] << ", "<<dragedP[2]<<std::endl;
+	double dragedV[3]; //vector pref to dragedP
 	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
+	
 	//upper section is codes for making dragged point and vector
 	double* rotAxis = crossProduct(vZ, dragedV); //rotAxis, and using reference point pref.
-	std::cout << dotProduct(vZ, dragedV)<< " "<<  length(rotAxis, 3)<<std::endl;
-	double cs = dotProduct(vZ, dragedV) / (length(vZ,3) * length(dragedV, 3));
-	double sn = length(rotAxis, 3) / (length(vZ, 3) * length(dragedV, 3));
-	double rotAngle = -1.0 * atan2(sn, cs);//radian value
-	
-	std::cout << cs << " " << sn <<std::endl;
-	std::cout <<"angle : "<< rotAngle * 180 / PI << std::endl;
+	double cs = dotProduct(vZ, dragedV) / (length(vZ,3) * length(dragedV, 3)); //cosin value of the rotation angle
+	double sn = length(rotAxis, 3) / (length(vZ, 3) * length(dragedV, 3)); //sin value of the rotation angle
+	double rotAngle = -1.0 * atan2(sn, cs);
 	double rotLen = length(rotAxis, 3);
-	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / rotLen;
-	std::cout<<"rot axis : "<<rotAxis[0]<<", "<<rotAxis[1]<<", "<<rotAxis[2]<<std::endl;
+	for(int i = 0; i < 3; i++) rotAxis[i] = rotAxis[i] / rotLen; //normalization
+
 	//quaternian part start
-	
 	double qRot[4]; //quaternian for rotAxis and rotAngle
 	double qP0[4]; //quaternian for p0 //must be changed to unit quaternian.
 	double qPviewUp[4]; //quaternian for p0 + viewUp
@@ -623,21 +674,19 @@ void trackBallXY() {
 	qPviewUp[0] = 0.0;
 	for(int i = 1; i < 4; i++) {
 		qRot[i] = rotAxis[i-1] * sin(rotAngle/2);
-		qP0[i] = p0[i-1];
-		qPviewUp[i] = p0[i-1] + viewUp[i-1];
+		qP0[i] = p0[i-1]+trans[i-1]; //trans vector for the rotation center
+		qPviewUp[i] = p0[i-1] + viewUp[i-1]+trans[i-1]; //trans vector for the rotation center
 	}
 	qRotI[0] = qRot[0] / length(qRot, 4);
 	for(int i = 1; i< 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot, 4);
 	double* q0new = Qmulti(qRot, Qmulti(qP0, qRotI));
 	double* qViewUp = Qmulti(qRot, Qmulti(qPviewUp, qRotI));
 	for(int i = 0; i < 3; i++) {
-		p0[i] = q0new[i+1];
-		viewUp[i] = qViewUp[i+1] - q0new[i+1];
+		p0[i] = q0new[i+1]-trans[i]; //new p0
+		viewUp[i] = qViewUp[i+1] - q0new[i+1]; //vector doesn't need the transvector
 	}
 	double d = length(viewUp, 3);
-	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
-	std::cout << "p0 : " << p0[0] <<", "<<p0[1] <<", "<<p0[2]<<std::endl;
-	std::cout << length(p0, 3) <<std::endl;
+	for(int i = 0; i<3; i++) viewUp[i] = viewUp[i]/d;
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
@@ -654,7 +703,15 @@ double* Qmulti(double *q1, double *q2) {
 	double* temp = crossProduct(v1, v2);
 	for(int i = 1; i < 4; i++) ret[i] = w1 * v2[i-1] + w2 * v1[i-1] + temp[i-1];
 	return ret;
+	/*
+	double *ret = (double *)malloc(sizeof(double) * 4);
+	ret[0] = q1[0]*q2[0] - q1[1]*q2[1] -q1[2]*q2[2] - q1[3]*q2[3];
+	ret[1] = q1[0]*q2[1] + q1[1]*q2[0] +q1[2]*q2[3] - q1[3]*q2[2];
+	ret[2] = q1[0]*q2[2] + q1[2]*q2[0] +q1[3]*q2[1] - q1[1]*q2[3];
+	ret[3] = q1[0]*q2[3] + q1[3]*q2[0] +q1[1]*q2[2] - q1[2]*q2[1];
+	return ret;*/
 }
+
 
 void setView(double x0, double y0, double z0, double xref, double yref, double zref, double x, double y, double z) {
 	p0[0] = x0;
@@ -681,12 +738,13 @@ int main(int argc, char** argv) {
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
 	initDiff();
-	setView(100.0, 35.0, 100.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+	setView(30.0, 30.0, 30.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(human);
 	glutReshapeFunc(reShape);
 	glutKeyboardFunc(myKeyboard);
 	glutMouseFunc(myMouse);
+	glutMotionFunc(myDrag);
 	glutTimerFunc(timeStep, timer, 0);
 	glutMainLoop();
 }
