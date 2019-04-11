@@ -471,9 +471,11 @@ void myKeyboard(unsigned char key, int x, int y) {
 		break;
 		case 'u': //camera zoom in
 		if(zoomAngle < 179) zoomAngle += 1.0;
+		std::cout<<"zoomAngle : "<<zoomAngle<<std::endl;
 		break;
 		case 'i': //camera zoom out
 		if(zoomAngle > 1) zoomAngle -= 1.0;
+		std::cout<<"zoomAngle : "<<zoomAngle<<std::endl;
 		break;
 		case 'o': //trackball z-axis
 		trackBallZ(-1);
@@ -493,9 +495,11 @@ void myKeyboard(unsigned char key, int x, int y) {
 		break;
 		case 'g':
 		if(scale > 0.01) scale /= 10.0;
+		std::cout<<"scale : "<<scale<<std::endl;
 		break;
 		case 'h':
 		if(scale < 100.0) scale *= 10.0;
+		std::cout<<"scale : "<<scale<<std::endl;
 		break;
 		defalut:
 		break;
