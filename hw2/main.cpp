@@ -25,6 +25,7 @@ double diff[3];
 double ptClick[3];
 double factor = 2.0; //using normalize v1
 double zoomAngle = 45.0;
+double scale = 1.0;
 int axisView = 0;
 //viewing functions
 void moveCameraX(int check);
@@ -110,8 +111,6 @@ void human() {
 		double tV[3];
 		for(int i = 0; i < 3; i++) tV[i] = p0[i] - pref[i];
 		double d = -1.0 * length(tV, 3);
-		std::cout<<d<<std::endl;
-		std::cout<<"curr viewUp : "<< viewUp[0] <<", "<<viewUp[1] <<", "<<viewUp[2]<<std::endl;
 		glBegin(GL_LINES);
 			glColor3f(1.0, 0.0, 1.0);
 			glVertex3f(0, 0, d);
@@ -492,6 +491,12 @@ void myKeyboard(unsigned char key, int x, int y) {
 		case 'm':
 		moveTbCenter(1);
 		break;
+		case 'g':
+		if(scale > 0.01) scale /= 10.0;
+		break;
+		case 'h':
+		if(scale < 100.0) scale *= 10.0;
+		break;
 		defalut:
 		break;
 	}
@@ -500,15 +505,9 @@ void myKeyboard(unsigned char key, int x, int y) {
 }
 
 void myDrag(int x, int y) {
-	std::cout<<"myDrag"<<std::endl;
-	std::cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<std::endl;
-	std::cout<<"ptClick : "<<ptClick[0]<<", "<<ptClick[1]<<", "<<ptClick[2]<<std::endl;
-	std::cout<<"x , y : "<<x<<", "<<y<<std::endl;
-	std::cout<<"factor : "<<factor<<std::endl;
 	diff[0] = ((double)x - ptClick[0])/factor;
 	diff[1] = ((double)y - ptClick[1])/factor;
 	diff[2] = 0.0;
-	std::cout<<"diff : "<<diff[0] <<", "<<diff[1]<<", "<<diff[2]<<std::endl;
 	ptClick[0] = (double)x;
 	ptClick[1] = (double)y;
 	ptClick[2] = 0.0;
@@ -516,7 +515,6 @@ void myDrag(int x, int y) {
 		trackBallXY();
 	}
 	glutPostRedisplay();
-	std::cout<<std::endl;
 }
 void myMouse(int button, int state, int x, int y) {
 	switch(button) {
@@ -540,7 +538,7 @@ void moveCameraX(int check) {
 	for(int i = 0; i < 3; i++) vZ[i] = p0[i] - pref[i];
 	double *temp = crossProduct(viewUp, vZ); //get x-axis in view coordinate
 	double d = length(temp, 3);
-	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
+	for(int i = 0; i < 3; i++) temp[i] = scale * temp[i] / d;
 	for(int i = 0; i < 3; i++) {
 		p0[i] += (double)check * temp[i];
 		pref[i] += (double)check *temp[i];
@@ -555,8 +553,7 @@ void moveCameraY(int check) {
 	for(int i = 0; i < 3; i++) vX[i] = vX[i] / dx;
 	double *temp = crossProduct(vZ, vX); //get y-axis in veiw coordinate
 	double d = length(temp, 3);
-	for(int i = 0; i < 3; i++) temp[i] = temp[i] / d;
-	std::cout <<"yaxis of camera move : " << temp[0] <<", "<<temp[1]<<", "<<temp[2] <<std::endl;
+	for(int i = 0; i < 3; i++) temp[i] = scale * temp[i] / d;
 	for(int i = 0; i < 3; i++) {
 		p0[i] += (double)check * temp[i];
 		pref[i] += (double)check * temp[i];
@@ -568,8 +565,8 @@ void moveCameraZ(int check) {
 	for(int i = 0; i < 3; i++) temp[i] = p0[i] - pref[i]; //Z-axis in viewing coordinate
 	double d = length(temp, 3); //get distance
 	for(int i = 0; i < 3; i++) {
-		p0[i] += (double)check * temp[i] / d;
-		pref[i] += (double)check * temp[i] / d;
+		p0[i] += (double)check * scale * temp[i] / d;
+		pref[i] += (double)check * scale *temp[i] / d;
 	} //z - axis translation
 }
 
@@ -597,8 +594,8 @@ void moveTbCenter(int check) {
 	double d = length(v, 3);
 	if(check == -1 && fabs(d - 1.0) < 0.001) return;
 	for(int i = 0; i < 3; i++) pref[i] += (double)check * v[i] / d;
-	std::cout<<pref[0]<<", "<<pref[1]<<", "<<pref[2]<<std::endl;
 }
+
 void trackBallZ(int check) {
 	double rotAxis[3]; //axis of the rotation
 	double trans[3]; //vector which moves pref to zero-point
@@ -646,7 +643,6 @@ void trackBallXY() {
 		dragedP[i] = p0[i] + xAxis[i] * diff[0]  - yAxis[i] * diff[1];
 		//yAxis[i] diff be substracted because of the window coordinate system.
 	}
-	std::cout<<"draged P: "<<dragedP[0]<<", "<<dragedP[1]<<", "<<dragedP[2]<<std::endl;
 	double dragedV[3]; //vector pref to dragedP
 	for(int i = 0; i < 3; i++) dragedV[i] = dragedP[i] - pref[i];
 	
@@ -684,26 +680,12 @@ void trackBallXY() {
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
-	double* ret = (double *)malloc(sizeof(double) * 4);
-	double w1 = q1[0];
-	double w2 = q2[0];
-	double v1[3];
-	double v2[3];
-	for(int i = 1; i < 4; i++) {
-		v1[i-1] = q1[i];
-		v2[i-1] = q2[i];
-	}
-	ret[0] = w1 * w2 - dotProduct(v1, v2);
-	double* temp = crossProduct(v1, v2);
-	for(int i = 1; i < 4; i++) ret[i] = w1 * v2[i-1] + w2 * v1[i-1] + temp[i-1];
-	return ret;
-	/*
 	double *ret = (double *)malloc(sizeof(double) * 4);
 	ret[0] = q1[0]*q2[0] - q1[1]*q2[1] -q1[2]*q2[2] - q1[3]*q2[3];
 	ret[1] = q1[0]*q2[1] + q1[1]*q2[0] +q1[2]*q2[3] - q1[3]*q2[2];
 	ret[2] = q1[0]*q2[2] + q1[2]*q2[0] +q1[3]*q2[1] - q1[1]*q2[3];
 	ret[3] = q1[0]*q2[3] + q1[3]*q2[0] +q1[1]*q2[2] - q1[2]*q2[1];
-	return ret;*/
+	return ret;
 }
 
 
@@ -718,6 +700,7 @@ void setView(double x0, double y0, double z0, double xref, double yref, double z
 	viewUp[1] = y;
 	viewUp[2] = z;
 }
+
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
