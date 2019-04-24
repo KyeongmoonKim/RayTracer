@@ -3,4 +3,8 @@
 
 	
 
-CATMULL_ROM # good!
+CATMULL_ROM#good
+
+
+40
+70

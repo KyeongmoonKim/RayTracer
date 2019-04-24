@@ -10,8 +10,8 @@
 using namespace std;
 
 int type; //the type of section
-int sectNum; //the number of section
-int contNum; //the number of control point
+int sectNum = -1; //the number of section
+int contNum = -1; //the number of control point
 //hw3
 void parser(string str);
 
@@ -343,7 +343,7 @@ void parser(string str) {
 		line.erase(remove(line.begin(), line.end(), ' '), line.end()); //space remove
 		line.erase(remove(line.begin(), line.end(), '\t'), line.end()); //tab remove
 		if(line.length() == 0) continue;
-		else if(line.at(0) == '#') cout<<line<<endl;
+		else if(line.at(0) == '#') continue;
 		else {
 			cout<<line<<endl;
 			size_t found = line.find_first_of('#');
@@ -358,6 +358,23 @@ void parser(string str) {
 		}
 	} //type check
 	cout<<type<<endl; //type check
+	while(!inputFile.eof()) {
+		string line;
+		getline(inputFile, line);
+		line.erase(remove(line.begin(), line.end(), ' '), line.end());
+		line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+		if(line.length() == 0) continue;
+		else if(line.at(0) == '#') continue;
+		else {
+			//cout<<line<<endl;
+			size_t found = line.find_first_of('#');
+			if(found != -1) line = line.substr(0, found);
+			if(sectNum == -1) sectNum = stoi(line);
+			else if(contNum == -1) contNum = stoi(line);
+		}
+		if(sectNum != -1 && contNum != -1) break;
+	}//sectNum, contNum
+	cout<<sectNum << " "<< contNum <<endl;
 	inputFile.close();
 }
 
