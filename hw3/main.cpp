@@ -5,6 +5,7 @@
 #include<string>
 #include<fstream>
 #include<algorithm>
+#include<string.h>
 #define PI 3.14159265
 
 using namespace std;
@@ -12,6 +13,10 @@ using namespace std;
 int type; //the type of section
 int sectNum = -1; //the number of section
 int contNum = -1; //the number of control point
+double** points;
+double* scala;
+double** rotat;
+double** trans;
 //hw3
 void parser(string str);
 
@@ -330,7 +335,13 @@ void setView(double x0, double y0, double z0, double xref, double yref, double z
 	viewUp[1] = y;
 	viewUp[2] = z;
 }
-
+/*string lfTrim(string str) {
+	if(str.length() == 0) return str;
+} //left trim called in tokenizer
+string Tokenizer(string str) {
+	size_t found = line.find_first_not_of("\t ");
+	if(found == -1) return 
+} //tokenizer, space tokenizer, for point. (ex) "10 10 # afadfa", "24 24", "23   23" */
 void parser(string str) {
 	ifstream inputFile(str.data());
 	if(inputFile.fail()) {
@@ -342,10 +353,10 @@ void parser(string str) {
 		getline(inputFile, line);
 		line.erase(remove(line.begin(), line.end(), ' '), line.end()); //space remove
 		line.erase(remove(line.begin(), line.end(), '\t'), line.end()); //tab remove
+		line.erase(remove(line.begin(), line.end(), 13), line.end());
 		if(line.length() == 0) continue;
 		else if(line.at(0) == '#') continue;
 		else {
-			cout<<line<<endl;
 			size_t found = line.find_first_of('#');
 			if(found != -1) line = line.substr(0, found);
 			if(line.compare("BSPLINE") == 0) type = 0;
@@ -357,16 +368,15 @@ void parser(string str) {
 			break;
 		}
 	} //type check
-	cout<<type<<endl; //type check
 	while(!inputFile.eof()) {
 		string line;
 		getline(inputFile, line);
 		line.erase(remove(line.begin(), line.end(), ' '), line.end());
 		line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+		line.erase(remove(line.begin(), line.end(), 13), line.end());
 		if(line.length() == 0) continue;
 		else if(line.at(0) == '#') continue;
 		else {
-			//cout<<line<<endl;
 			size_t found = line.find_first_of('#');
 			if(found != -1) line = line.substr(0, found);
 			if(sectNum == -1) sectNum = stoi(line);
@@ -374,8 +384,47 @@ void parser(string str) {
 		}
 		if(sectNum != -1 && contNum != -1) break;
 	}//sectNum, contNum
-	cout<<sectNum << " "<< contNum <<endl;
+
+	/*
+		global variables allocation part will be added
+	*/
+	int check = 0;
+	while(!inputFile.eof()) {
+		string line;
+		getline(inputFile, line);
+		string lineCp;
+		lineCp = line;
+		line.erase(remove(line.begin(), line.end(), ' '), line.end());
+		line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+		line.erase(remove(line.begin(), line.end(), 13), line.end());
+		if(line.length() == 0) continue;
+		else if(line.at(0) == '#') continue;
+		else {
+			if(check < contNum) {//contPoint
+				line = lineCp;
+				cout << check<<" : "<< lineCp << endl;
+				size_t found = line.find_first_of(' ');
+				double x = stod(line.substr(0, found));
+				line = line.substr(found, line.length());
+				line.erase(remove(line.begin(), line.end(), ' '), line.end());
+				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+				found = line.find_first_of("#");
+				if(found == -1) found = line.length();
+				double y = stod(line.substr(0, found));
+				cout<<"x: "<< x <<", y: "<< y<<endl;
+				check++;
+			} else if(check == contNum) {//scala
+				check++;
+			} else if(check == contNum + 1) {//rotation
+				check++;
+			} else {//position
+				check = 0;
+			}
+		}
+	} //point, scala, rotation, trans
 	inputFile.close();
+	cout<<"file closed!"<<endl;
+	cout<<type<<" "<<sectNum<<" "<<contNum<<endl;
 }
 
 int main(int argc, char** argv) {
