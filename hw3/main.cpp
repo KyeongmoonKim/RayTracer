@@ -2,7 +2,18 @@
 #include<math.h>
 #include<iostream>
 #include<stdlib.h>
+#include<string>
+#include<fstream>
+#include<algorithm>
 #define PI 3.14159265
+
+using namespace std;
+
+int type; //the type of section
+int sectNum; //the number of section
+int contNum; //the number of control point
+//hw3
+void parser(string str);
 
 //viewing variables
 double p0[3]; //gluLookAt zero-point
@@ -25,7 +36,6 @@ void trackBallZ(int check);
 void moveTbCenter(int check);
 double length(double *v, int n); //length of n-dimension vector
 double* Qmulti(double *q1, double *q2);
-
 
 
 
@@ -321,13 +331,46 @@ void setView(double x0, double y0, double z0, double xref, double yref, double z
 	viewUp[2] = z;
 }
 
+void parser(string str) {
+	ifstream inputFile(str.data());
+	if(inputFile.fail()) {
+		cout << "the file doesn't exist" << endl;
+		return;
+	}
+	while(!inputFile.eof()) {
+		string line;
+		getline(inputFile, line);
+		line.erase(remove(line.begin(), line.end(), ' '), line.end()); //space remove
+		line.erase(remove(line.begin(), line.end(), '\t'), line.end()); //tab remove
+		if(line.length() == 0) continue;
+		else if(line.at(0) == '#') cout<<line<<endl;
+		else {
+			cout<<line<<endl;
+			size_t found = line.find_first_of('#');
+			if(found != -1) line = line.substr(0, found);
+			if(line.compare("BSPLINE") == 0) type = 0;
+			else if(line.compare("CATMULL_ROM") == 0) type = 1;
+			else {
+				cout<<"spline type error"<<endl;
+				return;
+			}
+			break;
+		}
+	} //type check
+	cout<<type<<endl; //type check
+	inputFile.close();
+}
+
 int main(int argc, char** argv) {
+	cout<<"please enter your file name : ";
+	string str;
+	cin >> str;
+	parser(str);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(50, 100);
 	glutInitWindowSize(700, 700);
 	glutCreateWindow("An Example");
-
 	glClearColor(1.0, 1.0, 1.0, 0.0);
 	glClearDepth(1.0);
 	glEnable(GL_DEPTH_TEST);
