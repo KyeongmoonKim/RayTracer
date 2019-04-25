@@ -13,13 +13,15 @@ using namespace std;
 int type; //the type of section
 int sectNum = -1; //the number of section
 int contNum = -1; //the number of control point
-double*** points;
-double* scalas;
-double** rotats;
-double** posits;
+float*** points;
+float* scalas;
+float** rotats;
+float** posits;
 //hw3
 void parser(string str);
-
+float cPoint(float t, float p0, float p1, float p2, float p3); //catmullRom point
+float bPoint(float t, float p0, float p1, float p2, float p3); //bspline point
+void bDraw(float** cts, int time);
 //viewing variables
 double p0[3]; //gluLookAt zero-point
 double pref[3]; //gluLookAt ref-point
@@ -64,9 +66,19 @@ void myDraw() {
 		glEnd();
 	}
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
-	
+	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
+		for(int i = 0; i < sectNum; i++) {
+			glPushMatrix();
+			{
+				glTranslatef(posits[i][0], posits[i][1], posits[i][2]);
+				glRotatef(rotats[i][0], rotats[i][1], rotats[i][2], rotats[i][3]);
+				glScalef(scalas[i], scalas[i], scalas[i]);
+				bDraw(points[i], 30);
+			}
+			glPopMatrix();
+		}
 	}
 	glPopMatrix();
 	glutSwapBuffers();
@@ -335,13 +347,40 @@ void setView(double x0, double y0, double z0, double xref, double yref, double z
 	viewUp[1] = y;
 	viewUp[2] = z;
 }
-/*string lfTrim(string str) {
-	if(str.length() == 0) return str;
-} //left trim called in tokenizer
-string Tokenizer(string str) {
-	size_t found = line.find_first_not_of("\t ");
-	if(found == -1) return 
-} //tokenizer, space tokenizer, for point. (ex) "10 10 # afadfa", "24 24", "23   23" */
+
+
+float bPoint(float t, float p0, float p1, float p2, float p3) {
+	float t2 = t*t;
+	float t3 = t*t*t;
+	float b0 = (-1.0f * p0 + 3.0f * p1 - 3.0f * p2 + p3) / 6.0f;
+	float b1 = (3.0f * p0 - 6.0f * p1 + 3.0f * p2) / 6.0f;
+	float b2 = (-3.0f * p0 + 3.0f * p2) / 6.0f;
+	float b3 = (p0 + 4.0f * p1 + p2) / 6.0f;
+
+	return (b3 + t * b2 + t2 * b1 + t3 * b0);
+}
+float cPoint(float t, float p0, float p1, float p2, float p3) {
+	float b0 = p1;
+	float b1 = -0.5f*p0 + 0.5f*p2;
+	float b2 = p0 - 2.5f*p1 + 2.0f*p2 -0.5f*p3;
+	float b3 = -0.5f*p0 + 1.5f*p1 - 1.5f*p2 + 0.5f*p3;
+	return (((b3 * t + b2)*t + b1)*t + b0);
+}
+void bDraw(float **cts, int time) {
+	float d = (1.0f / (float)time);
+	glBegin(GL_LINE_STRIP);
+	for(int i = 0; i < contNum; i++) {
+		float t = 0.0f;
+		for(int j = 0; j < time; j++) {
+			float x = bPoint(t, cts[i][0], cts[(i+1)%contNum][0], cts[(i+2)%contNum][0], cts[(i+3)%contNum][0]);
+			float y = bPoint(t, cts[i][1], cts[(i+1)%contNum][1], cts[(i+2)%contNum][1], cts[(i+3)%contNum][1]);
+			float z = bPoint(t, cts[i][2], cts[(i+1)%contNum][2], cts[(i+2)%contNum][2], cts[(i+3)%contNum][2]);
+			glVertex3f(x, y, z);
+			t+=d;
+		}
+	}
+	glEnd();
+}
 void parser(string str) {
 	ifstream inputFile(str.data());
 	if(inputFile.fail()) {
@@ -388,17 +427,17 @@ void parser(string str) {
 	/*
 		global variables allocation part will be added
 	*/
-	points = (double ***)malloc(sizeof(double *)*sectNum);
-	for(int i = 0; i < sectNum ; i++) points[i] = (double **)malloc(sizeof(double*)*contNum);
-	scalas = (double *)malloc(sizeof(double)*sectNum);
-	rotats = (double **)malloc(sizeof(double*)*sectNum);
-	posits = (double **)malloc(sizeof(double*)*sectNum);
+	points = (float ***)malloc(sizeof(float *)*sectNum);
+	for(int i = 0; i < sectNum ; i++) points[i] = (float **)malloc(sizeof(float*)*contNum);
+	scalas = (float *)malloc(sizeof(float)*sectNum);
+	rotats = (float **)malloc(sizeof(float*)*sectNum);
+	posits = (float **)malloc(sizeof(float*)*sectNum);
 	for(int i = 0; i < sectNum; i++) {
-		for(int j = 0; j < contNum; j++) points[i][j] = (double *)malloc(sizeof(double)*3);
+		for(int j = 0; j < contNum; j++) points[i][j] = (float*)malloc(sizeof(float)*3);
 	}
 	for(int i = 0; i < sectNum; i++) {
-		rotats[i] = (double *)malloc(sizeof(double)*4);
-		posits[i] = (double *)malloc(sizeof(double)*3);
+		rotats[i] = (float*)malloc(sizeof(float)*4);
+		posits[i] = (float*)malloc(sizeof(float)*3);
 	}
 	int contCheck = 0;
 	int sectCheck = 0;
@@ -416,29 +455,29 @@ void parser(string str) {
 			line = lineCp;
 			if(contCheck < contNum) {//contPoint
 				size_t found = line.find_first_of(' ');
-				double x = stod(line.substr(0, found));
+				float x = stof(line.substr(0, found));
 				line = line.substr(found, line.length());
 				line.erase(remove(line.begin(), line.end(), ' '), line.end());
 				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
 				found = line.find_first_of("#");
 				if(found == -1) found = line.length();
-				double y = stod(line.substr(0, found));
+				float z = stof(line.substr(0, found));
 				points[sectCheck][contCheck][0] = x;
-				points[sectCheck][contCheck][1] = y;
-				points[sectCheck][contCheck][2] = 0.0;
+				points[sectCheck][contCheck][1] = 0.0f;
+				points[sectCheck][contCheck][2] = z;
 				contCheck++;
 			} else if(contCheck == contNum) {//scala
 				line.erase(remove(line.begin(), line.end(), ' '), line.end());
 				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
 				size_t found = line.find_first_of("#");
 				if(found == -1) found = line.length();
-				double scala = stod(line.substr(0, found));
+				float scala = stof(line.substr(0, found));
 				scalas[sectCheck] = scala;
 				contCheck++;
 			} else if(contCheck == contNum + 1) {//rotation
 				for(int i = 0; i < 3; i++) {
 					size_t found = line.find_first_of(' ');
-					double value = stod(line.substr(0, found));
+					float value = stof(line.substr(0, found));
 					line = line.substr(found, line.length());
 					rotats[sectCheck][i] = value;
 					found = line.find_first_not_of("\t ");
@@ -448,12 +487,12 @@ void parser(string str) {
 				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
 				size_t found = line.find_first_of("#");
 				if(found == -1) found = line.length();
-				rotats[sectCheck][3] = stod(line.substr(0, found));
+				rotats[sectCheck][3] = stof(line.substr(0, found));
 				contCheck++;
 			} else {//position
 				for(int i = 0; i < 2; i++) {
 					size_t found = line.find_first_of(' ');
-					double value = stod(line.substr(0, found));
+					float value = stof(line.substr(0, found));
 					line = line.substr(found, line.length());
 					posits[sectCheck][i] = value;
 					found = line.find_first_not_of("\t ");
@@ -463,7 +502,7 @@ void parser(string str) {
 				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
 				size_t found = line.find_first_of("#");
 				if(found == -1) found = line.length();
-				posits[sectCheck][2] = stod(line.substr(0, found));
+				posits[sectCheck][2] = stof(line.substr(0, found));
 				contCheck = 0;
 				sectCheck++;
 			}
@@ -479,14 +518,14 @@ int main(int argc, char** argv) {
 	string str;
 	cin >> str;
 	parser(str);
-	/*cout << type << endl;
+	cout << type << endl;
 	for(int i = 0; i < sectNum; i++) {
 		cout << "section #" << i  <<endl;
 		for(int j = 0; j < contNum; j++) cout << "point" << j << ": (" << points[i][j][0] <<", "<<points[i][j][1] <<", "<<points[i][j][2] <<")"<<endl;
 		cout << "scala : " << scalas[i] <<endl;
 		cout << "angle : " << rotats[i][0] << ", axis : ("<<rotats[i][1]<<", "<<rotats[i][2]<<", "<<rotats[i][3]<<")"<<endl;
 		cout << "position : ("<<posits[i][0] <<", "<< posits[i][1] <<", "<<posits[i][2]<<")"<<endl;
-	}*/
+	}
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(50, 100);
