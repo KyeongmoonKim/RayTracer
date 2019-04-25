@@ -13,10 +13,10 @@ using namespace std;
 int type; //the type of section
 int sectNum = -1; //the number of section
 int contNum = -1; //the number of control point
-double** points;
-double* scala;
-double** rotat;
-double** trans;
+double*** points;
+double* scalas;
+double** rotats;
+double** posits;
 //hw3
 void parser(string str);
 
@@ -388,7 +388,20 @@ void parser(string str) {
 	/*
 		global variables allocation part will be added
 	*/
-	int check = 0;
+	points = (double ***)malloc(sizeof(double *)*sectNum);
+	for(int i = 0; i < sectNum ; i++) points[i] = (double **)malloc(sizeof(double*)*contNum);
+	scalas = (double *)malloc(sizeof(double)*sectNum);
+	rotats = (double **)malloc(sizeof(double*)*sectNum);
+	posits = (double **)malloc(sizeof(double*)*sectNum);
+	for(int i = 0; i < sectNum; i++) {
+		for(int j = 0; j < contNum; j++) points[i][j] = (double *)malloc(sizeof(double)*3);
+	}
+	for(int i = 0; i < sectNum; i++) {
+		rotats[i] = (double *)malloc(sizeof(double)*4);
+		posits[i] = (double *)malloc(sizeof(double)*3);
+	}
+	int contCheck = 0;
+	int sectCheck = 0;
 	while(!inputFile.eof()) {
 		string line;
 		getline(inputFile, line);
@@ -400,9 +413,8 @@ void parser(string str) {
 		if(line.length() == 0) continue;
 		else if(line.at(0) == '#') continue;
 		else {
-			if(check < contNum) {//contPoint
-				line = lineCp;
-				cout << check<<" : "<< lineCp << endl;
+			line = lineCp;
+			if(contCheck < contNum) {//contPoint
 				size_t found = line.find_first_of(' ');
 				double x = stod(line.substr(0, found));
 				line = line.substr(found, line.length());
@@ -411,14 +423,49 @@ void parser(string str) {
 				found = line.find_first_of("#");
 				if(found == -1) found = line.length();
 				double y = stod(line.substr(0, found));
-				cout<<"x: "<< x <<", y: "<< y<<endl;
-				check++;
-			} else if(check == contNum) {//scala
-				check++;
-			} else if(check == contNum + 1) {//rotation
-				check++;
+				points[sectCheck][contCheck][0] = x;
+				points[sectCheck][contCheck][1] = y;
+				points[sectCheck][contCheck][2] = 0.0;
+				contCheck++;
+			} else if(contCheck == contNum) {//scala
+				line.erase(remove(line.begin(), line.end(), ' '), line.end());
+				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+				size_t found = line.find_first_of("#");
+				if(found == -1) found = line.length();
+				double scala = stod(line.substr(0, found));
+				scalas[sectCheck] = scala;
+				contCheck++;
+			} else if(contCheck == contNum + 1) {//rotation
+				for(int i = 0; i < 3; i++) {
+					size_t found = line.find_first_of(' ');
+					double value = stod(line.substr(0, found));
+					line = line.substr(found, line.length());
+					rotats[sectCheck][i] = value;
+					found = line.find_first_not_of("\t ");
+					line = line.substr(found, line.length());
+				}
+				line.erase(remove(line.begin(), line.end(), ' '), line.end());
+				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+				size_t found = line.find_first_of("#");
+				if(found == -1) found = line.length();
+				rotats[sectCheck][3] = stod(line.substr(0, found));
+				contCheck++;
 			} else {//position
-				check = 0;
+				for(int i = 0; i < 2; i++) {
+					size_t found = line.find_first_of(' ');
+					double value = stod(line.substr(0, found));
+					line = line.substr(found, line.length());
+					posits[sectCheck][i] = value;
+					found = line.find_first_not_of("\t ");
+					line = line.substr(found, line.length());
+				}
+				line.erase(remove(line.begin(), line.end(), ' '), line.end());
+				line.erase(remove(line.begin(), line.end(), '\t'), line.end());
+				size_t found = line.find_first_of("#");
+				if(found == -1) found = line.length();
+				posits[sectCheck][2] = stod(line.substr(0, found));
+				contCheck = 0;
+				sectCheck++;
 			}
 		}
 	} //point, scala, rotation, trans
@@ -432,6 +479,14 @@ int main(int argc, char** argv) {
 	string str;
 	cin >> str;
 	parser(str);
+	/*cout << type << endl;
+	for(int i = 0; i < sectNum; i++) {
+		cout << "section #" << i  <<endl;
+		for(int j = 0; j < contNum; j++) cout << "point" << j << ": (" << points[i][j][0] <<", "<<points[i][j][1] <<", "<<points[i][j][2] <<")"<<endl;
+		cout << "scala : " << scalas[i] <<endl;
+		cout << "angle : " << rotats[i][0] << ", axis : ("<<rotats[i][1]<<", "<<rotats[i][2]<<", "<<rotats[i][3]<<")"<<endl;
+		cout << "position : ("<<posits[i][0] <<", "<< posits[i][1] <<", "<<posits[i][2]<<")"<<endl;
+	}*/
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(50, 100);
