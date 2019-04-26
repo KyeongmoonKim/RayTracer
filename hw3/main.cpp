@@ -21,6 +21,7 @@ float** posits;
 void parser(string str);
 float cPoint(float t, float p0, float p1, float p2, float p3); //catmullRom point
 float bPoint(float t, float p0, float p1, float p2, float p3); //bspline point
+float* newRv(float t, float* r0, float* r1, float* r2, float* r3);
 void bDraw(float** cts, int time);
 void cDraw(float** cts, int time);
 //viewing variables
@@ -44,8 +45,10 @@ void trackBallZ(int check);
 void moveTbCenter(int check);
 double length(double *v, int n); //length of n-dimension vector
 double* Qmulti(double *q1, double *q2);
-double* Qlog(double *q);
-
+float* Qlog(double *q);
+double* Qexp(float *v);
+double* Qinverse(double *q);
+float** movePv(float** pv, float scala, float* rv, float *tv);
 
 void myDraw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -73,36 +76,44 @@ void myDraw() {
 		int time = 15;
 		float d = 1.0 / (float)time;
 		float tv[3];
-		float rv[4];
+		float* rv = (float*)malloc(sizeof(float)*4);
 		float sv;
 		float **pv;
+		float **before;
+		float **after;
+		//before = movePv(points[1], scalas[1], rotats[1], posits[1]);
 		pv = (float**)malloc(sizeof(float*)*contNum);
 		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
-		//for(int i = -1; i < sectNum-2; i++) {
 		for(int i = 0; i < sectNum-3; i++) {
 			float t = 0.0f;
 			for(int j = 0; j <= time; j++) {
 				if(j==time) t = 1.0f;
 				for(int k=0; k < 3; k++) {
-					//tv[k] = cPoint(t, posits[(i+sectNum)%sectNum][k], posits[i+1][k], posits[i+2][k], posits[(i+3)%sectNum][k]); 
 					tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
 				}
-				for(int k=0; k < 4; k++) {
-					//rv[k] = cPoint(t, rotats[(i+sectNum)%sectNum][k], rotats[i+1][k], rotats[i+2][k], rotats[(i+3)%sectNum][k]);
-					rv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
-				}
-				//sv = cPoint(t, scalas[(i+sectNum)%sectNum], scalas[i+1], scalas[i+2], scalas[(i+3)%sectNum]);
+				/*for(int k=0; k < 4; k++) {
+					rv[k] = cPoint(t, rotats[i][k], rotats[i+1][k], rotats[i+2][k], rotats[i+3][k]);
+				}*/
+				rv = newRv(t, rotats[i], rotats[i+1], rotats[i+2], rotats[i+3]);
+				//cout<<"rv : "<<rv[0]<<", "<<rv[1]<<", "<<rv[2]<<", "<<rv[3]<<endl;
 				sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
 				for(int k=0; k < contNum; k++) {
 					for(int l = 0; l < 3; l++) {
-						//pv[k][l] = cPoint(t, points[(i+sectNum)%sectNum][k][l], points[i+1][k][l], points[i+2][k][l], points[(i+3)%sectNum][k][l]);
 						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
 					}
 				}
+				/*after = movePv(pv, sv, rv, tv);
+				glBegin(GL_LINES);
+					for(int k = 0; k < contNum; k++) {
+						glVertex3fv(before[k]);
+						glVertex3fv(after[k]);
+					}
+				glEnd();
+				for(int k = 0; k < contNum; k++) for(int l =0; l < 3; l++) before[k][l] = after[k][l];*/
 				glPushMatrix();
 				{
 					glTranslatef(tv[0], tv[1], tv[2]);
-					glRotatef(rv[0], rv[1], rv[2], rv[3]);
+					glRotatef(rv[0]*180 / PI, rv[1], rv[2], rv[3]);
 					glScalef(sv, sv, sv);
 					if(type==0) cDraw(pv, 30);
 					else bDraw(pv, 30);
@@ -367,13 +378,38 @@ double* Qmulti(double *q1, double *q2) {
 	return ret;
 }
 
-double* Qlog(double *q) {
+float* Qlog(double *q) {
 	double sn = sqrt(q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
 	double theta = atan2(sn, q[0]);
-	if(sn > 0.001) sn = theta/sn;
-	else sn = 1.0;
-	double* ret = (double*)malloc(sizeof(double)*3);
-	for(int i = 0; i < 3; i++) ret[i] = sn * q[i+1];
+	float* ret = (float*)malloc(sizeof(float)*4);
+	if(sn > 0.001) {
+		ret[0] = theta;
+		for(int i = 1; i < 4; i++) ret[i] = q[i]/sn;
+	}
+	else for(int i = 0; i < 4; i++) ret[i] = 0.0;
+	return ret;
+} //4-d vector
+
+double* Qexp(float *v) {
+	double theta = v[0];
+	double* ret = (double*)malloc(sizeof(double)*4);
+	if(theta < 0.001) {
+		ret[0] = 1.0;ret[1] = 0.0; ret[2] = 0.0; ret[3] = 0.0;
+		return ret;
+	}
+	else {
+		double sn = sin(theta);
+		ret[0] = cos(theta);
+		for(int i = 1; i < 4; i++) ret[i] = sn*(double)v[i];
+		return ret;
+	}
+} //4-d vector
+
+double* Qinverse(double *q) {
+	double d = length(q, 4);
+	double* ret = (double *)malloc(sizeof(double)*4);
+	ret[0] = q[0]/d;
+	for(int i = 1; i < 4; i++) ret[i] = -1.0 * q[i]/d;
 	return ret;
 }
 
@@ -401,12 +437,65 @@ float bPoint(float t, float p0, float p1, float p2, float p3) {
 	return (b3 + t * b2 + t2 * b1 + t3 * b0);
 }
 float cPoint(float t, float p0, float p1, float p2, float p3) {
+	float t2 = t*t;
+	float t3 = t*t*t;
 	float b0 = p1;
 	float b1 = -0.5f*p0 + 0.5f*p2;
 	float b2 = p0 - 2.5f*p1 + 2.0f*p2 -0.5f*p3;
 	float b3 = -0.5f*p0 + 1.5f*p1 - 1.5f*p2 + 0.5f*p3;
-	return (((b3 * t + b2)*t + b1)*t + b0);
+	return (b3 * t3 + b2*t2 + b1*t + b0);
+} //bezier + catmullrom
+
+float bezierPoint(float t, float p0, float p1, float p2, float p3) {
+	float t2 = t*t;
+	float t3 = t*t*t;
+	float b0 = -1.0f * p0 + 3.0f * p1 - 3.0f * p2 + p3;
+	float b1 = 3.0f * p0 - 6.0f * p1 + 3.0f * p2;
+	float b2 = -3.0f * p0 + 3.0f * p1;
+	float b3 = p0;
+	return (t3 * b0 + t2 * b1 + t* b2 + b3);
 }
+double* Qcont1(double* q0, double* q1, double *q2) {
+	double* Qtemp = Qmulti(Qinverse(q0), q2);
+	double* a = Qinverse(q0);
+	//cout<<"Qinverse(q0) : "<<a[0]<<", "<<a[1]<<", "<<a[2]<<", "<<a[3]<<endl;
+	//cout<<"Qmulti(Qinverse(q0), q2) : "<<Qtemp[0]<<", "<<Qtemp[1]<<", "<<Qtemp[2]<<", "<<Qtemp[3]<<endl;
+	float* Vtemp = Qlog(Qtemp);
+	//cout<<"Vtemp : "<<Vtemp[0]<<", "<<Vtemp[1]<<", "<<Vtemp[2]<<", "<<Vtemp[3]<<endl;
+	Vtemp[0] = Vtemp[0]/6.0f;
+	//cout<<Vtemp[0]<<endl;
+	Qtemp = Qexp(Vtemp);
+	double* ret = Qmulti(q1, Qtemp);
+	return ret;
+}
+
+double* Qcont2(double* q1, double* q2, double* q3) {
+	double* Qtemp = Qmulti(Qinverse(q1), q3);
+	float* Vtemp = Qlog(Qtemp);
+	Vtemp[0] = Vtemp[0]/6.0f;
+	Qtemp = Qexp(Vtemp);
+	double* ret = Qmulti(q2, Qinverse(Qtemp));
+	return ret;
+}
+
+float* newRv(float t, float* r0, float* r1, float* r2, float* r3) {
+	float ret;
+	double *q0 = Qexp(r0);
+	double *q1 = Qexp(r1);
+	double *q2 = Qexp(r2);
+	double *q3 = Qexp(r3);
+	double *cq1 = Qcont1(q0, q1, q2);
+	//cout<<"cq1 : "<< cq1[0] <<", "<<cq1[1]<<", "<<cq1[2]<<", "<<cq1[3]<<endl;
+	double *cq2 = Qcont2(q1, q2, q3);
+	//cout<<"cq2 : "<< cq2[0] <<", "<<cq2[1]<<", "<<cq2[2]<<", "<<cq2[3]<<endl;
+	double *cq0 = q1;
+	double *cq3 = q2;
+	//cout<<"cq0 : "<<cq0[0]<<", "<<cq0[1]<<", "<<cq0[2]<<", "<<cq0[3]<<endl;
+	double *qP = (double*)malloc(sizeof(double)*4);
+	for(int i = 0; i < 4; i++) qP[i] = bezierPoint(t, cq0[i], cq1[i], cq2[i], cq3[i]);
+	//cout<<"bezier quaternion point when "<<t<<" : "<<qP[0]<<", "<<qP[1]<<", "<<qP[2]<<", "<<qP[3]<<", "<<endl;
+	return Qlog(qP);
+} 
 void cDraw(float **cts, int time) {
 	float d = (1.0f / (float)time);
 	glBegin(GL_LINE_STRIP);
@@ -441,6 +530,26 @@ void bDraw(float **cts, int time) {
 		
 		glEnd();
 	}
+}
+
+float** movePv(float** pv, float scala, float *rv, float *tv) {
+	float** ret = (float **)malloc(sizeof(float*)*contNum);
+	for(int i = 0; i < contNum; i++) ret[i] = (float *)malloc(sizeof(float)*3);
+	for(int i = 0; i < contNum; i++) for(int j = 0; j < 3; j++) ret[i][j] = pv[i][j] * scala;
+	double* rq = Qexp(rv);
+	double* rqi = Qinverse(rq);
+	double* pq = (double *)malloc(sizeof(double)*4);
+	for(int i = 0; i < contNum; i++) {
+		pq[0] = 0.0;
+		for(int j =1; j < 4; j++) {
+			pq[j] = (double)ret[i][j-1];
+		}
+		double* newQ = Qmulti(rq, Qmulti(pq, rqi));
+		for(int j =0; j< 3; j++) {
+			ret[i][j] = newQ[j+1] + tv[j];
+		}
+	}
+	return ret;
 }
 void parser(string str) {
 	ifstream inputFile(str.data());
