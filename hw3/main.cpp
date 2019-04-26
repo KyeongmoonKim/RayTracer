@@ -44,7 +44,7 @@ void trackBallZ(int check);
 void moveTbCenter(int check);
 double length(double *v, int n); //length of n-dimension vector
 double* Qmulti(double *q1, double *q2);
-
+double* Qlog(double *q);
 
 
 void myDraw() {
@@ -70,30 +70,42 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		int time = 30;
+		int time = 15;
 		float d = 1.0 / (float)time;
 		float tv[3];
 		float rv[4];
 		float sv;
-		float pv[contNum][3]; 
-		for(int i = -1; i < sectNum-2; i++) {
+		float **pv;
+		pv = (float**)malloc(sizeof(float*)*contNum);
+		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
+		//for(int i = -1; i < sectNum-2; i++) {
+		for(int i = 0; i < sectNum-3; i++) {
 			float t = 0.0f;
 			for(int j = 0; j <= time; j++) {
 				if(j==time) t = 1.0f;
 				for(int k=0; k < 3; k++) {
-					tv[k] = cPoint(t, posits[(i+sectNum)%sectNum][k], posits[i+1][k], posits[i+2][k], posits[(i+3)%sectNum][k]); 
+					//tv[k] = cPoint(t, posits[(i+sectNum)%sectNum][k], posits[i+1][k], posits[i+2][k], posits[(i+3)%sectNum][k]); 
+					tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
 				}
 				for(int k=0; k < 4; k++) {
-					rv[k] = cPoint(t, rotats[(i+sectNum)%sectNum][k], rotats[i+1][k], rotats[i+2][k], rotats[(i+3)%sectNum][k]);
+					//rv[k] = cPoint(t, rotats[(i+sectNum)%sectNum][k], rotats[i+1][k], rotats[i+2][k], rotats[(i+3)%sectNum][k]);
+					rv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
 				}
-				sv = cPoint(t, scalas[(i+sectNum)%sectNum], scalas[i+1], scalas[i+2], scalas[(i+3)%sectNum]);
+				//sv = cPoint(t, scalas[(i+sectNum)%sectNum], scalas[i+1], scalas[i+2], scalas[(i+3)%sectNum]);
+				sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
+				for(int k=0; k < contNum; k++) {
+					for(int l = 0; l < 3; l++) {
+						//pv[k][l] = cPoint(t, points[(i+sectNum)%sectNum][k][l], points[i+1][k][l], points[i+2][k][l], points[(i+3)%sectNum][k][l]);
+						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
+					}
+				}
 				glPushMatrix();
 				{
 					glTranslatef(tv[0], tv[1], tv[2]);
 					glRotatef(rv[0], rv[1], rv[2], rv[3]);
 					glScalef(sv, sv, sv);
-					if(type==0) cDraw(points[i+1], 30);
-					else bDraw(points[i+1], 30);
+					if(type==0) cDraw(pv, 30);
+					else bDraw(pv, 30);
 				}
 				glPopMatrix();
 				t+=d;
@@ -355,6 +367,15 @@ double* Qmulti(double *q1, double *q2) {
 	return ret;
 }
 
+double* Qlog(double *q) {
+	double sn = sqrt(q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+	double theta = atan2(sn, q[0]);
+	if(sn > 0.001) sn = theta/sn;
+	else sn = 1.0;
+	double* ret = (double*)malloc(sizeof(double)*3);
+	for(int i = 0; i < 3; i++) ret[i] = sn * q[i+1];
+	return ret;
+}
 
 void setView(double x0, double y0, double z0, double xref, double yref, double zref, double x, double y, double z) {
 	p0[0] = x0;
