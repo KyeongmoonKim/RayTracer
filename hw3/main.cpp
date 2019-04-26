@@ -70,16 +70,34 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		for(int i = 0; i < sectNum; i++) {
-			glPushMatrix();
-			{
-				glTranslatef(posits[i][0], posits[i][1], posits[i][2]);
-				glRotatef(rotats[i][0], rotats[i][1], rotats[i][2], rotats[i][3]);
-				glScalef(scalas[i], scalas[i], scalas[i]);
-				if(type==0) cDraw(points[i], 30);
-				else bDraw(points[i], 30);
+		int time = 30;
+		float d = 1.0 / (float)time;
+		float tv[3];
+		float rv[4];
+		float sv;
+		float pv[contNum][3]; 
+		for(int i = -1; i < sectNum-2; i++) {
+			float t = 0.0f;
+			for(int j = 0; j <= time; j++) {
+				if(j==time) t = 1.0f;
+				for(int k=0; k < 3; k++) {
+					tv[k] = cPoint(t, posits[(i+sectNum)%sectNum][k], posits[i+1][k], posits[i+2][k], posits[(i+3)%sectNum][k]); 
+				}
+				for(int k=0; k < 4; k++) {
+					rv[k] = cPoint(t, rotats[(i+sectNum)%sectNum][k], rotats[i+1][k], rotats[i+2][k], rotats[(i+3)%sectNum][k]);
+				}
+				sv = cPoint(t, scalas[(i+sectNum)%sectNum], scalas[i+1], scalas[i+2], scalas[(i+3)%sectNum]);
+				glPushMatrix();
+				{
+					glTranslatef(tv[0], tv[1], tv[2]);
+					glRotatef(rv[0], rv[1], rv[2], rv[3]);
+					glScalef(sv, sv, sv);
+					if(type==0) cDraw(points[i+1], 30);
+					else bDraw(points[i+1], 30);
+				}
+				glPopMatrix();
+				t+=d;
 			}
-			glPopMatrix();
 		}
 	}
 	glPopMatrix();
