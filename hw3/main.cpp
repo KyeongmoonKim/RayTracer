@@ -22,6 +22,7 @@ void parser(string str);
 float cPoint(float t, float p0, float p1, float p2, float p3); //catmullRom point
 float bPoint(float t, float p0, float p1, float p2, float p3); //bspline point
 void bDraw(float** cts, int time);
+void cDraw(float** cts, int time);
 //viewing variables
 double p0[3]; //gluLookAt zero-point
 double pref[3]; //gluLookAt ref-point
@@ -75,7 +76,8 @@ void myDraw() {
 				glTranslatef(posits[i][0], posits[i][1], posits[i][2]);
 				glRotatef(rotats[i][0], rotats[i][1], rotats[i][2], rotats[i][3]);
 				glScalef(scalas[i], scalas[i], scalas[i]);
-				bDraw(points[i], 30);
+				if(type==0) cDraw(points[i], 30);
+				else bDraw(points[i], 30);
 			}
 			glPopMatrix();
 		}
@@ -366,20 +368,40 @@ float cPoint(float t, float p0, float p1, float p2, float p3) {
 	float b3 = -0.5f*p0 + 1.5f*p1 - 1.5f*p2 + 0.5f*p3;
 	return (((b3 * t + b2)*t + b1)*t + b0);
 }
-void bDraw(float **cts, int time) {
+void cDraw(float **cts, int time) {
 	float d = (1.0f / (float)time);
 	glBegin(GL_LINE_STRIP);
 	for(int i = 0; i < contNum; i++) {
+		glBegin(GL_LINE_STRIP);
 		float t = 0.0f;
-		for(int j = 0; j < time; j++) {
+		for(int j = 0; j <= time; j++) {
+			if(j==time) t= 1.0;
+			float x = cPoint(t, cts[i][0], cts[(i+1)%contNum][0], cts[(i+2)%contNum][0], cts[(i+3)%contNum][0]);
+			float y = cPoint(t, cts[i][1], cts[(i+1)%contNum][1], cts[(i+2)%contNum][1], cts[(i+3)%contNum][1]);
+			float z = cPoint(t, cts[i][2], cts[(i+1)%contNum][2], cts[(i+2)%contNum][2], cts[(i+3)%contNum][2]);
+			glVertex3f(x, y, z);
+			t+=d;
+		}
+		glVertex3f(cts[(i+2)%contNum][0], cts[(i+2)%contNum][1], cts[(i+2)%contNum][2]);
+		glEnd();
+	}
+}
+void bDraw(float **cts, int time) {
+	float d = (1.0f / (float)time);
+	for(int i = 0; i < contNum; i++) {
+		glBegin(GL_LINE_STRIP);
+		float t = 0.0f;
+		for(int j = 0; j <=time; j++) {
+			if(j== time) t = 1.0;
 			float x = bPoint(t, cts[i][0], cts[(i+1)%contNum][0], cts[(i+2)%contNum][0], cts[(i+3)%contNum][0]);
 			float y = bPoint(t, cts[i][1], cts[(i+1)%contNum][1], cts[(i+2)%contNum][1], cts[(i+3)%contNum][1]);
 			float z = bPoint(t, cts[i][2], cts[(i+1)%contNum][2], cts[(i+2)%contNum][2], cts[(i+3)%contNum][2]);
 			glVertex3f(x, y, z);
 			t+=d;
 		}
+		
+		glEnd();
 	}
-	glEnd();
 }
 void parser(string str) {
 	ifstream inputFile(str.data());
