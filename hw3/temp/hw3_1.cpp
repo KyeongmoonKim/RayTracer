@@ -73,7 +73,7 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		int time = 15;
+		int time = 20;
 		float d = 1.0 / (float)time;
 		float tv[3];
 		float* rv = (float*)malloc(sizeof(float)*4);
@@ -81,7 +81,16 @@ void myDraw() {
 		float **pv;
 		float **before;
 		float **after;
-		//before = movePv(points[1], scalas[1], rotats[1], posits[1]);
+		float **temp;
+		temp = (float**)malloc(sizeof(float*)*contNum);
+		for(int i = 0; i < contNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
+		for(int i = 0; i < contNum; i++) {
+			for(int j = 0; j < 3; j++) {
+				if(type == 0) temp[i][j] = cPoint(0.0, points[1][i][j], points[1][(i+1)%contNum][j], points[1][(i+2)%contNum][j], points[1][(i+3)%contNum][j]);
+				else temp[i][j] = bPoint(0.0, points[1][i][j], points[1][(i+1)%contNum][j], points[1][(i+2)%contNum][j], points[1][(i+3)%contNum][j]);
+			}
+		}
+		before = movePv(temp, scalas[1], rotats[1], posits[1]);
 		pv = (float**)malloc(sizeof(float*)*contNum);
 		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
 		for(int i = 0; i < sectNum-3; i++) {
@@ -91,29 +100,31 @@ void myDraw() {
 				for(int k=0; k < 3; k++) {
 					tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
 				}
-				/*for(int k=0; k < 4; k++) {
-					rv[k] = cPoint(t, rotats[i][k], rotats[i+1][k], rotats[i+2][k], rotats[i+3][k]);
-				}*/
 				rv = newRv(t, rotats[i], rotats[i+1], rotats[i+2], rotats[i+3]);
-				//cout<<"rv : "<<rv[0]<<", "<<rv[1]<<", "<<rv[2]<<", "<<rv[3]<<endl;
 				sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
 				for(int k=0; k < contNum; k++) {
 					for(int l = 0; l < 3; l++) {
 						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
 					}
 				}
-				/*after = movePv(pv, sv, rv, tv);
+				for(int k=0; k < contNum; k++) {
+					for(int l=0; l<3;l++) {
+						if(type==0) temp[k][l] = cPoint(0.0, pv[k][l], pv[(k+1)%contNum][l], pv[(k+2)%contNum][l], pv[(k+3)%contNum][l]);
+						else temp[k][l] = bPoint(0.0, pv[k][l], pv[(k+1)%contNum][l], pv[(k+2)%contNum][l], pv[(k+3)%contNum][l]);
+					}
+				}
+				after = movePv(temp, sv, rv, tv);
 				glBegin(GL_LINES);
 					for(int k = 0; k < contNum; k++) {
 						glVertex3fv(before[k]);
 						glVertex3fv(after[k]);
 					}
 				glEnd();
-				for(int k = 0; k < contNum; k++) for(int l =0; l < 3; l++) before[k][l] = after[k][l];*/
+				before = after;
 				glPushMatrix();
 				{
 					glTranslatef(tv[0], tv[1], tv[2]);
-					glRotatef(rv[0]*180 / PI, rv[1], rv[2], rv[3]);
+					glRotatef(rv[0]*180.0f / PI, rv[1], rv[2], rv[3]);
 					glScalef(sv, sv, sv);
 					if(type==0) cDraw(pv, 30);
 					else bDraw(pv, 30);
@@ -380,7 +391,8 @@ double* Qmulti(double *q1, double *q2) {
 
 float* Qlog(double *q) {
 	double sn = sqrt(q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
-	double theta = atan2(sn, q[0]);
+	//double theta = atan2(sn, q[0]);
+	double theta = atan2(sn, q[0]) * 2;
 	float* ret = (float*)malloc(sizeof(float)*4);
 	if(sn > 0.001) {
 		ret[0] = theta;
@@ -398,8 +410,10 @@ double* Qexp(float *v) {
 		return ret;
 	}
 	else {
-		double sn = sin(theta);
-		ret[0] = cos(theta);
+		//double sn = sin(theta);
+		double sn = sin(theta/2);
+		//ret[0] = cos(theta);
+		ret[0] = cos(theta/2);
 		for(int i = 1; i < 4; i++) ret[i] = sn*(double)v[i];
 		return ret;
 	}
