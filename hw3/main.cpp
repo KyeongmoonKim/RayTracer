@@ -73,7 +73,7 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		int time = 3;
+		int time = 5;
 		float d = 1.0 / (float)time;
 		float tv[3];
 		float* rv = (float*)malloc(sizeof(float)*4);
@@ -118,7 +118,7 @@ void myDraw() {
 					}
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
-				for(int k = 0; k < polyNum; k++) {
+				/*for(int k = 0; k < polyNum; k++) {
 					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
 					glBegin(GL_TRIANGLES);
 						glVertex3fv(before[k]);
@@ -129,6 +129,15 @@ void myDraw() {
 						glVertex3fv(after[(k+1)%polyNum]);
 						glVertex3fv(after[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
+					glEnd();
+				}*/
+				for(int k=0; k< polyNum; k++) {
+					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+					glBegin(GL_QUADS);
+						glVertex3fv(before[k]);
+						glVertex3fv(before[(k+1)%polyNum]);
+						glVertex3fv(after[(k+1)%polyNum]);
+						glVertex3fv(after[k]);
 					glEnd();
 				}
 				/*for(int k = 0; k < polyNum; k++) {
