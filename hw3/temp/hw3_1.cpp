@@ -48,7 +48,7 @@ double* Qmulti(double *q1, double *q2);
 float* Qlog(double *q);
 double* Qexp(float *v);
 double* Qinverse(double *q);
-float** movePv(float** pv, float scala, float* rv, float *tv);
+float** movePv(float** pv, float scala, float* rv, float *tv, int n);
 
 void myDraw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -73,7 +73,7 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		int time = 20;
+		int time = 3;
 		float d = 1.0 / (float)time;
 		float tv[3];
 		float* rv = (float*)malloc(sizeof(float)*4);
@@ -82,15 +82,19 @@ void myDraw() {
 		float **before;
 		float **after;
 		float **temp;
-		temp = (float**)malloc(sizeof(float*)*contNum);
-		for(int i = 0; i < contNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < contNum; i++) {
+		int distNum = 5;
+		int polyNum = contNum * distNum;
+		float dd = 1.0f / (float)distNum;
+		float cd = 1.0f / (float)polyNum;
+		temp = (float**)malloc(sizeof(float*)*polyNum);
+		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
+		for(int i = 0; i < polyNum; i++) {
 			for(int j = 0; j < 3; j++) {
-				if(type == 0) temp[i][j] = cPoint(0.0, points[1][i][j], points[1][(i+1)%contNum][j], points[1][(i+2)%contNum][j], points[1][(i+3)%contNum][j]);
-				else temp[i][j] = bPoint(0.0, points[1][i][j], points[1][(i+1)%contNum][j], points[1][(i+2)%contNum][j], points[1][(i+3)%contNum][j]);
+				if(type==0) temp[i][j] = cPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
+				else temp[i][j] = bPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(        i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
 			}
 		}
-		before = movePv(temp, scalas[1], rotats[1], posits[1]);
+		before = movePv(temp, scalas[1], rotats[1], posits[1], polyNum);
 		pv = (float**)malloc(sizeof(float*)*contNum);
 		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
 		for(int i = 0; i < sectNum-3; i++) {
@@ -107,27 +111,42 @@ void myDraw() {
 						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
 					}
 				}
-				for(int k=0; k < contNum; k++) {
-					for(int l=0; l<3;l++) {
-						if(type==0) temp[k][l] = cPoint(0.0, pv[k][l], pv[(k+1)%contNum][l], pv[(k+2)%contNum][l], pv[(k+3)%contNum][l]);
-						else temp[k][l] = bPoint(0.0, pv[k][l], pv[(k+1)%contNum][l], pv[(k+2)%contNum][l], pv[(k+3)%contNum][l]);
+				for(int k = 0; k < polyNum; k++) {
+					for(int l = 0; l < 3; l++) {
+						if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
+						else temp[k][l] = bPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
 					}
 				}
-				after = movePv(temp, sv, rv, tv);
-				glBegin(GL_LINES);
-					for(int k = 0; k < contNum; k++) {
+				after = movePv(temp, sv, rv, tv, polyNum);
+				for(int k = 0; k < polyNum; k++) {
+					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+					glBegin(GL_TRIANGLES);
+						glVertex3fv(before[k]);
+						glVertex3fv(before[(k+1)%polyNum]);
+						glVertex3fv(after[k]);
+					glEnd();
+					glBegin(GL_TRIANGLES);
+						glVertex3fv(after[(k+1)%polyNum]);
+						glVertex3fv(after[k]);
+						glVertex3fv(before[(k+1)%polyNum]);
+					glEnd();
+				}
+				/*for(int k = 0; k < polyNum; k++) {
+					glColor3f(0.0, 0.0, 0.0);
+					glBegin(GL_LINES);
 						glVertex3fv(before[k]);
 						glVertex3fv(after[k]);
-					}
-				glEnd();
+					glEnd();
+				}*/
 				before = after;
 				glPushMatrix();
 				{
+					glColor3f(0.0, 0.0, 0.0);
 					glTranslatef(tv[0], tv[1], tv[2]);
 					glRotatef(rv[0]*180.0f / PI, rv[1], rv[2], rv[3]);
 					glScalef(sv, sv, sv);
-					if(type==0) cDraw(pv, 30);
-					else bDraw(pv, 30);
+					if(type==0) cDraw(pv, 5);
+					else bDraw(pv, 5);
 				}
 				glPopMatrix();
 				t+=d;
@@ -541,19 +560,18 @@ void bDraw(float **cts, int time) {
 			glVertex3f(x, y, z);
 			t+=d;
 		}
-		
 		glEnd();
 	}
 }
 
-float** movePv(float** pv, float scala, float *rv, float *tv) {
-	float** ret = (float **)malloc(sizeof(float*)*contNum);
-	for(int i = 0; i < contNum; i++) ret[i] = (float *)malloc(sizeof(float)*3);
-	for(int i = 0; i < contNum; i++) for(int j = 0; j < 3; j++) ret[i][j] = pv[i][j] * scala;
+float** movePv(float** pv, float scala, float *rv, float *tv, int n) {
+	float** ret = (float **)malloc(sizeof(float*)*n);
+	for(int i = 0; i < n; i++) ret[i] = (float *)malloc(sizeof(float)*3);
+	for(int i = 0; i < n; i++) for(int j = 0; j < 3; j++) ret[i][j] = pv[i][j] * scala;
 	double* rq = Qexp(rv);
 	double* rqi = Qinverse(rq);
 	double* pq = (double *)malloc(sizeof(double)*4);
-	for(int i = 0; i < contNum; i++) {
+	for(int i = 0; i < n; i++) {
 		pq[0] = 0.0;
 		for(int j =1; j < 4; j++) {
 			pq[j] = (double)ret[i][j-1];

@@ -73,7 +73,7 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		int time = 5;
+		int time = 3;
 		float d = 1.0 / (float)time;
 		float tv[3];
 		float* rv = (float*)malloc(sizeof(float)*4);
@@ -113,20 +113,31 @@ void myDraw() {
 				}
 				for(int k = 0; k < polyNum; k++) {
 					for(int l = 0; l < 3; l++) {
-						if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), points[1][k/distNum][l], points[1][(k/distNum+1)%contNum][l], points[1][(k/distNum+2)%contNum][l], points[1][(k/distNum+3)%contNum][l]);
-						else temp[k][l] = bPoint(dd*(float)(k%distNum), points[1][k/distNum][l], points[1][(k/distNum+1)%contNum][l], points[1        ][(k/distNum+2)%contNum][l], points[1][(k/distNum+3)%contNum][l]);
+						if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
+						else temp[k][l] = bPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
 					}
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
 				for(int k = 0; k < polyNum; k++) {
 					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
-					glBegin(GL_QUADS);
+					glBegin(GL_TRIANGLES);
 						glVertex3fv(before[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(after[(k+1)%polyNum]);
 						glVertex3fv(after[k]);
 					glEnd();
+					glBegin(GL_TRIANGLES);
+						glVertex3fv(after[(k+1)%polyNum]);
+						glVertex3fv(after[k]);
+						glVertex3fv(before[(k+1)%polyNum]);
+					glEnd();
 				}
+				/*for(int k = 0; k < polyNum; k++) {
+					glColor3f(0.0, 0.0, 0.0);
+					glBegin(GL_LINES);
+						glVertex3fv(before[k]);
+						glVertex3fv(after[k]);
+					glEnd();
+				}*/
 				before = after;
 				glPushMatrix();
 				{
@@ -549,7 +560,6 @@ void bDraw(float **cts, int time) {
 			glVertex3f(x, y, z);
 			t+=d;
 		}
-		
 		glEnd();
 	}
 }
