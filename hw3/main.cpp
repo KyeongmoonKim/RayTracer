@@ -97,7 +97,8 @@ void myDraw() {
 		before = movePv(temp, scalas[1], rotats[1], posits[1], polyNum);
 		pv = (float**)malloc(sizeof(float*)*contNum);
 		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < sectNum-3; i++) {
+		for(int i = 0; i < 18; i++) {
+		//for(int i = 0; i < sectNum-3; i++) {
 			float t = 0.0f;
 			for(int j = 0; j <= time; j++) {
 				if(j==time) t = 1.0f;
