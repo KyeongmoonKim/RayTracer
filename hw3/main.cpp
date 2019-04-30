@@ -86,6 +86,7 @@ void myDraw() {
 		int polyNum = contNum * distNum;
 		float dd = 1.0f / (float)distNum;
 		float cd = 1.0f / (float)polyNum;
+		int cCheck = 0;
 		temp = (float**)malloc(sizeof(float*)*polyNum);
 		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
 		for(int i = 0; i < polyNum; i++) {
@@ -118,8 +119,9 @@ void myDraw() {
 					}
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
-				/*for(int k = 0; k < polyNum; k++) {
-					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+				for(int k = 0; k < polyNum; k++) {
+					if(k < polyNum/2) glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+					else glColor3f(0.0, cd*(polyNum - k), 1.0 - cd * (polyNum-k));
 					glBegin(GL_TRIANGLES);
 						glVertex3fv(before[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
@@ -130,8 +132,8 @@ void myDraw() {
 						glVertex3fv(after[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
-				}*/
-				for(int k=0; k< polyNum; k++) {
+				}
+				/*for(int k=0; k< polyNum; k++) {
 					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
 					glBegin(GL_QUADS);
 						glVertex3fv(before[k]);
@@ -139,7 +141,7 @@ void myDraw() {
 						glVertex3fv(after[(k+1)%polyNum]);
 						glVertex3fv(after[k]);
 					glEnd();
-				}
+				}*/
 				/*for(int k = 0; k < polyNum; k++) {
 					glColor3f(0.0, 0.0, 0.0);
 					glBegin(GL_LINES);
