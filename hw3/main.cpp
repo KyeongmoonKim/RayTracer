@@ -722,8 +722,6 @@ void parser(string str) {
 		}
 	} //point, scala, rotation, trans
 	inputFile.close();
-	cout<<"file closed!"<<endl;
-	cout<<type<<" "<<sectNum<<" "<<contNum<<endl;
 }
 
 int main(int argc, char** argv) {
@@ -731,14 +729,14 @@ int main(int argc, char** argv) {
 	string str;
 	cin >> str;
 	parser(str);
-	cout << type << endl;
-	for(int i = 0; i < sectNum; i++) {
+	//cout << type << endl;
+	/*for(int i = 0; i < sectNum; i++) {
 		cout << "section #" << i  <<endl;
 		for(int j = 0; j < contNum; j++) cout << "point" << j << ": (" << points[i][j][0] <<", "<<points[i][j][1] <<", "<<points[i][j][2] <<")"<<endl;
 		cout << "scala : " << scalas[i] <<endl;
 		cout << "angle : " << rotats[i][0] << ", axis : ("<<rotats[i][1]<<", "<<rotats[i][2]<<", "<<rotats[i][3]<<")"<<endl;
 		cout << "position : ("<<posits[i][0] <<", "<< posits[i][1] <<", "<<posits[i][2]<<")"<<endl;
-	}
+	}*/
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(50, 100);
