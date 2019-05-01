@@ -10,7 +10,7 @@
 
 using namespace std;
 
-int type; //the type of section
+int type; //the type of section, 0 : catmull, 1: bspline
 int sectNum = -1; //the number of section
 int contNum = -1; //the number of control point
 float*** points;
@@ -611,8 +611,8 @@ void parser(string str) {
 		else {
 			size_t found = line.find_first_of('#');
 			if(found != -1) line = line.substr(0, found);
-			if(line.compare("BSPLINE") == 0) type = 0;
-			else if(line.compare("CATMULL_ROM") == 0) type = 1;
+			if(line.compare("BSPLINE") == 0) type = 1;
+			else if(line.compare("CATMULL_ROM") == 0) type = 0;
 			else {
 				cout<<"spline type error"<<endl;
 				return;

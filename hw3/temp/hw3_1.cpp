@@ -10,7 +10,7 @@
 
 using namespace std;
 
-int type; //the type of section
+int type; //the type of section, 0 : catmull, 1: bspline
 int sectNum = -1; //the number of section
 int contNum = -1; //the number of control point
 float*** points;
@@ -73,7 +73,7 @@ void myDraw() {
 	glColor3f(0.0, 0.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		int time = 3;
+		int time = 5;
 		float d = 1.0 / (float)time;
 		float tv[3];
 		float* rv = (float*)malloc(sizeof(float)*4);
@@ -86,6 +86,7 @@ void myDraw() {
 		int polyNum = contNum * distNum;
 		float dd = 1.0f / (float)distNum;
 		float cd = 1.0f / (float)polyNum;
+		int cCheck = 0;
 		temp = (float**)malloc(sizeof(float*)*polyNum);
 		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
 		for(int i = 0; i < polyNum; i++) {
@@ -119,7 +120,8 @@ void myDraw() {
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
 				for(int k = 0; k < polyNum; k++) {
-					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+					if(k < polyNum/2) glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+					else glColor3f(0.0, cd*(polyNum - k), 1.0 - cd * (polyNum-k));
 					glBegin(GL_TRIANGLES);
 						glVertex3fv(before[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
@@ -131,6 +133,15 @@ void myDraw() {
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
 				}
+				/*for(int k=0; k< polyNum; k++) {
+					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
+					glBegin(GL_QUADS);
+						glVertex3fv(before[k]);
+						glVertex3fv(before[(k+1)%polyNum]);
+						glVertex3fv(after[(k+1)%polyNum]);
+						glVertex3fv(after[k]);
+					glEnd();
+				}*/
 				/*for(int k = 0; k < polyNum; k++) {
 					glColor3f(0.0, 0.0, 0.0);
 					glBegin(GL_LINES);
@@ -600,8 +611,8 @@ void parser(string str) {
 		else {
 			size_t found = line.find_first_of('#');
 			if(found != -1) line = line.substr(0, found);
-			if(line.compare("BSPLINE") == 0) type = 0;
-			else if(line.compare("CATMULL_ROM") == 0) type = 1;
+			if(line.compare("BSPLINE") == 0) type = 1;
+			else if(line.compare("CATMULL_ROM") == 0) type = 0;
 			else {
 				cout<<"spline type error"<<endl;
 				return;
