@@ -49,7 +49,16 @@ float* Qlog(double *q);
 double* Qexp(float *v);
 double* Qinverse(double *q);
 float** movePv(float** pv, float scala, float* rv, float *tv, int n);
-
+//hw4
+typedef struct rect {
+	float points[4][3];
+	float colors[4];
+	float nv[3];
+} Rect;
+int rectNum;
+int* depthCheck;
+Rect* rts;
+void setRts(string str);
 void myDraw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_PROJECTION);
@@ -70,9 +79,13 @@ void myDraw() {
 		glEnd();
 	}
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
-	glColor3f(0.0, 0.0, 0.0);
+	glTranslatef(0.0, -20.0, 0.0);
 	glPushMatrix();
 	{//start drawing
+		//test
+		{
+			//part for back-face
+		}
 		int time = 5;
 		float d = 1.0 / (float)time;
 		float tv[3];
@@ -120,8 +133,8 @@ void myDraw() {
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
 				for(int k = 0; k < polyNum; k++) {
-					if(k < polyNum/2) glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
-					else glColor3f(0.0, cd*(polyNum - k), 1.0 - cd * (polyNum-k));
+					if(k < polyNum/2) glColor4f(0.0, 0.0+cd*k, 1.0-cd*k, 1.0);
+					else glColor4f(0.0, cd*(polyNum - k), 1.0 - cd * (polyNum-k), 1.0);
 					glBegin(GL_TRIANGLES);
 						glVertex3fv(before[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
@@ -133,26 +146,10 @@ void myDraw() {
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
 				}
-				/*for(int k=0; k< polyNum; k++) {
-					glColor3f(0.0, 0.0+cd*k, 1.0-cd*k);
-					glBegin(GL_QUADS);
-						glVertex3fv(before[k]);
-						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(after[(k+1)%polyNum]);
-						glVertex3fv(after[k]);
-					glEnd();
-				}*/
-				/*for(int k = 0; k < polyNum; k++) {
-					glColor3f(0.0, 0.0, 0.0);
-					glBegin(GL_LINES);
-						glVertex3fv(before[k]);
-						glVertex3fv(after[k]);
-					glEnd();
-				}*/
 				before = after;
 				glPushMatrix();
 				{
-					glColor3f(0.0, 0.0, 0.0);
+					glColor4f(0.0, 0.0, 0.0, 1.0);
 					glTranslatef(tv[0], tv[1], tv[2]);
 					glRotatef(rv[0]*180.0f / PI, rv[1], rv[2], rv[3]);
 					glScalef(sv, sv, sv);
@@ -162,6 +159,9 @@ void myDraw() {
 				glPopMatrix();
 				t+=d;
 			}
+		}
+		{//part for front-face
+
 		}
 	}
 	glPopMatrix();
@@ -655,6 +655,7 @@ void parser(string str) {
 	int contCheck = 0;
 	int sectCheck = 0;
 	while(!inputFile.eof()) {
+		if(sectCheck==sectNum) break;
 		string line;
 		getline(inputFile, line);
 		string lineCp;
@@ -724,19 +725,66 @@ void parser(string str) {
 	inputFile.close();
 }
 
+void setRts(string str) {
+	ifstream inputFile(str.data());
+	if(inputFile.fail()) {
+		cout<<"the file doesn't exist!"<<endl;
+		return;
+	}
+	string line;
+	if(!inputFile.eof()) {
+		getline(inputFile, line);
+		rectNum = stoi(line);
+	}
+	rts = (Rect*)malloc(sizeof(Rect)*rectNum);
+	depthCheck = (int*)malloc(sizeof(int)*rectNum);
+	int lineNum = 6; // line per 1 rect
+	int lineIdx = 0;
+	int rectIdx = 0;
+	while(!inputFile.eof()) {
+		if(rectIdx == rectNum) break;
+		getline(inputFile, line);
+		if(lineIdx < 4) {//points
+			for(int i = 0; i < 3; i++) {
+				size_t found = line.find_first_of(' ');
+				if(found==-1) found = line.length();
+				rts[rectIdx].points[lineIdx][i] = stof(line.substr(0, found));
+				if(i == 2) break;
+				line = line.substr(found+1, line.length());
+			}
+			lineIdx++;
+		} else if(lineIdx < 5) {//color+transparency
+			for(int i = 0; i < 4; i++) {
+				size_t found = line.find_first_of(' ');
+				if(found==-1) found = line.length();
+				rts[rectIdx].colors[i] = stof(line.substr(0, found));
+				if(i == 3) break;
+				line = line.substr(found+1, line.length());
+			}
+			lineIdx++;
+		} else if(lineIdx < lineNum) {//normal vector
+			for(int i = 0; i<3; i++) {
+				size_t found = line.find_first_of(' ');
+				if(found == -1) found = line.length();
+				rts[rectIdx].nv[i] = stof(line.substr(0, found));
+				if(i==2) break;
+				line = line.substr(found+1, line.length());
+			}
+			rectIdx++;
+			lineIdx=0;
+		} 
+	}
+	inputFile.close();
+}
+
 int main(int argc, char** argv) {
 	cout<<"please enter your file name : ";
 	string str;
 	cin >> str;
 	parser(str);
-	//cout << type << endl;
-	/*for(int i = 0; i < sectNum; i++) {
-		cout << "section #" << i  <<endl;
-		for(int j = 0; j < contNum; j++) cout << "point" << j << ": (" << points[i][j][0] <<", "<<points[i][j][1] <<", "<<points[i][j][2] <<")"<<endl;
-		cout << "scala : " << scalas[i] <<endl;
-		cout << "angle : " << rotats[i][0] << ", axis : ("<<rotats[i][1]<<", "<<rotats[i][2]<<", "<<rotats[i][3]<<")"<<endl;
-		cout << "position : ("<<posits[i][0] <<", "<< posits[i][1] <<", "<<posits[i][2]<<")"<<endl;
-	}*/
+	cout<<"please enter your rect file name : ";
+	cin >> str;
+	setRts(str);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(50, 100);
@@ -745,9 +793,11 @@ int main(int argc, char** argv) {
 	glClearColor(1.0, 1.0, 1.0, 0.0);
 	glClearDepth(1.0);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
-	setView(30.0, 30.0, 30.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+	setView(70.0, 70.0, 70.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(myDraw);
 	glutReshapeFunc(reShape);
