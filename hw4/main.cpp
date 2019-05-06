@@ -53,7 +53,7 @@ float** movePv(float** pv, float scala, float* rv, float *tv, int n);
 typedef struct rect {
 	float points[4][3];
 	float colors[4];
-	double nv[3];
+	double nv[4];
 } Rect;
 int rectNum;
 int* depthCheck;
@@ -85,21 +85,18 @@ void myDraw() {
 	for(int i = 0; i < 3; i++) viewing[i] = pref[i]-p0[i];
 	double len = length(viewing, 3);
 	for(int i = 0; i < 3; i++) viewing[i] = viewing[i]/len;
+	cout << "viewing(-z) : "<<viewing[0]<<", "<<viewing[1]<<", "<<viewing[2]<<endl;
 	for(int i = 0; i < rectNum; i++) {
 		cout<<"dotProduct " << i << " : "<< dotProduct(viewing, rts[i].nv)<<endl;
-		if(dotProduct(viewing, rts[i].nv) > 0) depthCheck[i] = 0; //backFace
+		cout<<"using Polyhera decide " << i << " : "<< dotProduct(p0, rts[i].nv) + rts[i].nv[3]<<endl;
+		//if(dotProduct(viewing, rts[i].nv) > 0) depthCheck[i] = 0; //backFace
+		if(dotProduct(rts[i].nv, p0) + rts[i].nv[3] < 0) depthCheck[i] = 0;
 		else depthCheck[i] = 1; //frontFace
 	}
-	cout << "viewing(-z) : "<<viewing[0]<<", "<< viewing[1]<<", "<<viewing[2]<<endl;
 	for(int i= 0; i < rectNum; i++) cout<<"depthCheck " <<i<<" : "<<depthCheck[i]<<endl;
-	glTranslatef(0.0, -20.0, 0.0);
+	//glTranslatef(0.0, -20.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		{//part for backface
-			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 0) drawRect(&rts[i]);
-			}
-		}
 		int time = 5;
 		float d = 1.0 / (float)time;
 		float tv[3];
@@ -173,6 +170,11 @@ void myDraw() {
 				}
 				glPopMatrix();
 				t+=d;
+			}
+		}
+		{//part for fack-face
+			for(int i = 0; i < rectNum; i++) {
+				if(depthCheck[i] == 0) drawRect(&rts[i]);
 			}
 		}
 		{//part for front-face
@@ -799,11 +801,11 @@ void setRts(string str) {
 			}
 			lineIdx++;
 		} else if(lineIdx < lineNum) {//normal vector
-			for(int i = 0; i<3; i++) {
+			for(int i = 0; i < 4; i++) {
 				size_t found = line.find_first_of(' ');
 				if(found == -1) found = line.length();
 				rts[rectIdx].nv[i] = stod(line.substr(0, found));
-				if(i==2) break;
+				if(i==3) break;
 				line = line.substr(found+1, line.length());
 			}
 			rectIdx++;
@@ -843,7 +845,7 @@ int main(int argc, char** argv) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
-	setView(70.0, 70.0, 70.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+	setView(70.0, 90.0, 70.0, 0.0, 20.0, 0.0, 0.0, 1.0, 0.0);
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(myDraw);
 	glutReshapeFunc(reShape);
