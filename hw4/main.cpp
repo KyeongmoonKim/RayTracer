@@ -53,12 +53,13 @@ float** movePv(float** pv, float scala, float* rv, float *tv, int n);
 typedef struct rect {
 	float points[4][3];
 	float colors[4];
-	float nv[3];
+	double nv[3];
 } Rect;
 int rectNum;
 int* depthCheck;
 Rect* rts;
 void setRts(string str);
+void drawRect(Rect* a);
 void myDraw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_PROJECTION);
@@ -79,12 +80,25 @@ void myDraw() {
 		glEnd();
 	}
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
+	depthCheck = (int *)malloc(sizeof(int)*rectNum);
+	double viewing[3];
+	for(int i = 0; i < 3; i++) viewing[i] = pref[i]-p0[i];
+	double len = length(viewing, 3);
+	for(int i = 0; i < 3; i++) viewing[i] = viewing[i]/len;
+	for(int i = 0; i < rectNum; i++) {
+		cout<<"dotProduct " << i << " : "<< dotProduct(viewing, rts[i].nv)<<endl;
+		if(dotProduct(viewing, rts[i].nv) > 0) depthCheck[i] = 0; //backFace
+		else depthCheck[i] = 1; //frontFace
+	}
+	cout << "viewing(-z) : "<<viewing[0]<<", "<< viewing[1]<<", "<<viewing[2]<<endl;
+	for(int i= 0; i < rectNum; i++) cout<<"depthCheck " <<i<<" : "<<depthCheck[i]<<endl;
 	glTranslatef(0.0, -20.0, 0.0);
 	glPushMatrix();
 	{//start drawing
-		//test
-		{
-			//part for back-face
+		{//part for backface
+			for(int i = 0; i < rectNum; i++) {
+				if(depthCheck[i] == 0) drawRect(&rts[i]);
+			}
 		}
 		int time = 5;
 		float d = 1.0 / (float)time;
@@ -146,6 +160,7 @@ void myDraw() {
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
 				}
+				free(before);
 				before = after;
 				glPushMatrix();
 				{
@@ -161,8 +176,12 @@ void myDraw() {
 			}
 		}
 		{//part for front-face
-
+			for(int i = 0; i < rectNum; i++) {
+				if(depthCheck[i] == 1) drawRect(&rts[i]);
+			}
 		}
+		free(temp);
+		free(pv);
 	}
 	glPopMatrix();
 	glutSwapBuffers();
@@ -274,6 +293,7 @@ void moveCameraX(int check) {
 		p0[i] += (double)check * temp[i];
 		pref[i] += (double)check *temp[i];
 	} //translation
+	free(temp);
 }
 
 void moveCameraY(int check) {
@@ -289,6 +309,8 @@ void moveCameraY(int check) {
 		p0[i] += (double)check * temp[i];
 		pref[i] += (double)check * temp[i];
 	}
+	free(vX);
+	free(temp);
 }
 
 void moveCameraZ(int check) {
@@ -356,6 +378,9 @@ void trackBallZ(int check) {
 	for(int i = 0; i < 3; i++) viewUp[i] = (qQnew[i+1]-trans[i]) - p0[i]; //qQnew-trans is the point rotated.
 	d = length(viewUp, 3);
 	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
+	free(qQnew);
+	free(xAxis);
+	free(yAxis);
 }
 
 void trackBallXY() {
@@ -408,6 +433,11 @@ void trackBallXY() {
 	}
 	double d = length(viewUp, 3);
 	for(int i = 0; i<3; i++) viewUp[i] = viewUp[i]/d;
+	free(q0new);
+	free(qViewUp);
+	free(rotAxis);
+	free(xAxis);
+	free(yAxis);
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
@@ -502,14 +532,13 @@ float bezierPoint(float t, float p0, float p1, float p2, float p3) {
 double* Qcont1(double* q0, double* q1, double *q2) {
 	double* Qtemp = Qmulti(Qinverse(q0), q2);
 	double* a = Qinverse(q0);
-	//cout<<"Qinverse(q0) : "<<a[0]<<", "<<a[1]<<", "<<a[2]<<", "<<a[3]<<endl;
-	//cout<<"Qmulti(Qinverse(q0), q2) : "<<Qtemp[0]<<", "<<Qtemp[1]<<", "<<Qtemp[2]<<", "<<Qtemp[3]<<endl;
 	float* Vtemp = Qlog(Qtemp);
-	//cout<<"Vtemp : "<<Vtemp[0]<<", "<<Vtemp[1]<<", "<<Vtemp[2]<<", "<<Vtemp[3]<<endl;
 	Vtemp[0] = Vtemp[0]/6.0f;
-	//cout<<Vtemp[0]<<endl;
 	Qtemp = Qexp(Vtemp);
 	double* ret = Qmulti(q1, Qtemp);
+	free(Qtemp);
+	free(a);
+	free(Vtemp);
 	return ret;
 }
 
@@ -519,6 +548,8 @@ double* Qcont2(double* q1, double* q2, double* q3) {
 	Vtemp[0] = Vtemp[0]/6.0f;
 	Qtemp = Qexp(Vtemp);
 	double* ret = Qmulti(q2, Qinverse(Qtemp));
+	free(Qtemp);
+	free(Vtemp);
 	return ret;
 }
 
@@ -529,15 +560,17 @@ float* newRv(float t, float* r0, float* r1, float* r2, float* r3) {
 	double *q2 = Qexp(r2);
 	double *q3 = Qexp(r3);
 	double *cq1 = Qcont1(q0, q1, q2);
-	//cout<<"cq1 : "<< cq1[0] <<", "<<cq1[1]<<", "<<cq1[2]<<", "<<cq1[3]<<endl;
 	double *cq2 = Qcont2(q1, q2, q3);
-	//cout<<"cq2 : "<< cq2[0] <<", "<<cq2[1]<<", "<<cq2[2]<<", "<<cq2[3]<<endl;
 	double *cq0 = q1;
 	double *cq3 = q2;
-	//cout<<"cq0 : "<<cq0[0]<<", "<<cq0[1]<<", "<<cq0[2]<<", "<<cq0[3]<<endl;
 	double *qP = (double*)malloc(sizeof(double)*4);
 	for(int i = 0; i < 4; i++) qP[i] = bezierPoint(t, cq0[i], cq1[i], cq2[i], cq3[i]);
-	//cout<<"bezier quaternion point when "<<t<<" : "<<qP[0]<<", "<<qP[1]<<", "<<qP[2]<<", "<<qP[3]<<", "<<endl;
+	free(q0);
+	free(q1);
+	free(q2);
+	free(q3);
+	free(cq1);
+	free(cq2);
 	return Qlog(qP);
 } 
 void cDraw(float **cts, int time) {
@@ -587,11 +620,15 @@ float** movePv(float** pv, float scala, float *rv, float *tv, int n) {
 		for(int j =1; j < 4; j++) {
 			pq[j] = (double)ret[i][j-1];
 		}
-		double* newQ = Qmulti(rq, Qmulti(pq, rqi));
+		double *newQ = Qmulti(rq, Qmulti(pq, rqi));
 		for(int j =0; j< 3; j++) {
 			ret[i][j] = newQ[j+1] + tv[j];
 		}
+		free(newQ);
 	}
+	free(rq);
+	free(rqi);
+	free(pq);
 	return ret;
 }
 void parser(string str) {
@@ -737,7 +774,6 @@ void setRts(string str) {
 		rectNum = stoi(line);
 	}
 	rts = (Rect*)malloc(sizeof(Rect)*rectNum);
-	depthCheck = (int*)malloc(sizeof(int)*rectNum);
 	int lineNum = 6; // line per 1 rect
 	int lineIdx = 0;
 	int rectIdx = 0;
@@ -766,7 +802,7 @@ void setRts(string str) {
 			for(int i = 0; i<3; i++) {
 				size_t found = line.find_first_of(' ');
 				if(found == -1) found = line.length();
-				rts[rectIdx].nv[i] = stof(line.substr(0, found));
+				rts[rectIdx].nv[i] = stod(line.substr(0, found));
 				if(i==2) break;
 				line = line.substr(found+1, line.length());
 			}
@@ -775,6 +811,16 @@ void setRts(string str) {
 		} 
 	}
 	inputFile.close();
+}
+
+void drawRect(Rect* a) {
+	glBegin(GL_QUADS);
+		glColor4f(a->colors[0], a->colors[1], a->colors[2], a->colors[3]);
+		glVertex3fv(a->points[0]);
+		glVertex3fv(a->points[1]);
+		glVertex3fv(a->points[2]);
+		glVertex3fv(a->points[3]);
+	glEnd();
 }
 
 int main(int argc, char** argv) {
