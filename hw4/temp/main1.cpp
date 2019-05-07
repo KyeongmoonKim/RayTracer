@@ -54,8 +54,6 @@ typedef struct rect {
 	float points[4][3];
 	float colors[4];
 	double nv[4];
-	int n;
-	float ks[3];
 } Rect;
 int rectNum;
 int* depthCheck;
@@ -64,7 +62,6 @@ void setRts(string str);
 void drawRect(Rect* a);
 void setLight();
 int light1;
-float* getNV(float* p0, float *p1, float *p2);
 
 void myDraw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -125,9 +122,6 @@ void myDraw() {
 		int polyNum = contNum * distNum;
 		float dd = 1.0f / (float)distNum;
 		float cd = 1.0f / (float)polyNum;
-		float amb[] = {0.1, 0.1, 0.1, 1.0};
-		float dif[] = {0.2, 0.2, 0.2, 1.0};
-		float spe[] = {0.5, 0.5, 0.5, 1.0};
 		int cCheck = 0;
 		temp = (float**)malloc(sizeof(float*)*polyNum);
 		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
@@ -161,50 +155,23 @@ void myDraw() {
 					}
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
-				float cv[4];
 				for(int k = 0; k < polyNum; k++) {
-					if(k < polyNum/2) {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * cd*k;
-						cv[2] = dif[2] * (1.0-cd*k);
-						cv[3] = 1.0;
-					}
-					else {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * (cd*(polyNum - k));
-						cv[2] = dif[2] * (1.0 - cd*(polyNum - k));
-						cv[3] = 1.0;
-					}
-					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, amb);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, cv);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
-					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 90.0);
-					float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
+					if(k < polyNum/2) glColor4f(0.0, 0.0+cd*k, 1.0-cd*k, 1.0);
+					else glColor4f(0.0, cd*(polyNum - k), 1.0 - cd * (polyNum-k), 1.0);
 					glBegin(GL_TRIANGLES);
-						/*glVertex3fv(before[k]);
-						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(after[k]);*/
-						glVertex3fv(before[(k+1)%polyNum]);
 						glVertex3fv(before[k]);
+						glVertex3fv(before[(k+1)%polyNum]);
 						glVertex3fv(after[k]);
 					glEnd();
-					n = getNV(after[k], after[(k+1)%polyNum], before[(k+1)%polyNum]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
 					glBegin(GL_TRIANGLES);
-						/*glVertex3fv(after[(k+1)%polyNum]);
-						glVertex3fv(after[k]);
-						glVertex3fv(before[(k+1)%polyNum]);*/
-						glVertex3fv(after[k]);
 						glVertex3fv(after[(k+1)%polyNum]);
+						glVertex3fv(after[k]);
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
 				}
 				free(before);
 				before = after;
-				/*glPushMatrix();
+				glPushMatrix();
 				{
 					glColor4f(0.0, 0.0, 0.0, 1.0);
 					glTranslatef(tv[0], tv[1], tv[2]);
@@ -213,14 +180,10 @@ void myDraw() {
 					if(type==0) cDraw(pv, 5);
 					else bDraw(pv, 5);
 				}
-				glPopMatrix();*/
+				glPopMatrix();
 				t+=d;
 			}
 		}
-		glEnable(GL_BLEND);
-		glDepthMask(GL_FALSE);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
 		{//part for fack-face
 			for(int i = 0; i < rectNum; i++) {
 				if(depthCheck[i] == 0) drawRect(&rts[i]);
@@ -232,8 +195,6 @@ void myDraw() {
 				if(depthCheck[i] == 1) drawRect(&rts[i]);
 			}
 		}
-		glDepthMask(GL_TRUE);
-		glDisable(GL_BLEND);
 		free(temp);
 		free(pv);
 		free(depthCheck);
@@ -304,11 +265,11 @@ void myKeyboard(unsigned char key, int x, int y) {
 		break;
 		case 'e':
 		if(light1 == 0) {
-			glEnable(GL_LIGHT1);
+			glEnable(GL_LIGHT0);
 			light1 = 1;
 		}
 		else {
-			glDisable(GL_LIGHT1);
+			glDisable(GL_LIGHT0);
 			light1 = 0;
 		}
 		break;
@@ -839,7 +800,7 @@ void setRts(string str) {
 		rectNum = stoi(line);
 	}
 	rts = (Rect*)malloc(sizeof(Rect)*rectNum);
-	int lineNum = 8; // line per 1 rect
+	int lineNum = 6; // line per 1 rect
 	int lineIdx = 0;
 	int rectIdx = 0;
 	while(!inputFile.eof()) {
@@ -863,7 +824,7 @@ void setRts(string str) {
 				line = line.substr(found+1, line.length());
 			}
 			lineIdx++;
-		} else if(lineIdx < 6) {//normal vector
+		} else if(lineIdx < lineNum) {//normal vector
 			for(int i = 0; i < 4; i++) {
 				size_t found = line.find_first_of(' ');
 				if(found == -1) found = line.length();
@@ -871,83 +832,31 @@ void setRts(string str) {
 				if(i==3) break;
 				line = line.substr(found+1, line.length());
 			}
-			lineIdx++;
-		} else if(lineIdx < 7) {//ks
-			for(int i = 0; i < 3; i++) {
-				size_t found = line.find_first_of(' ');
-				if(found==-1) found = line.length();
-				rts[rectIdx].ks[i] = stof(line.substr(0, found));
-				if(i==2) break;
-				line = line.substr(found+1, line.length());
-			}
-			lineIdx++;
-		} else if(lineIdx < lineNum) {//n
-			rts[rectIdx].n = stoi(line);
-			lineIdx = 0;
 			rectIdx++;
-		}
+			lineIdx=0;
+		} 
 	}
 	inputFile.close();
 }
 
 void drawRect(Rect* a) {
-	float n[3];
-	float amb[4];
-	float dif[4];
-	float spe[4];
-	for(int i = 0; i < 3; i++) {
-		amb[i] = a->ks[0];
-		dif[i] = a->ks[1] * a->colors[i];
-		spe[i] = a->ks[2];
-	}
-	amb[3] = a->colors[3];
-	dif[3] = a->colors[3];
-	spe[3] = a->colors[3];
-	for(int i = 0; i < 3; i++) n[i] = a->nv[i];
-	float shin = (float)a->n;
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, amb);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, dif);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
-	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shin);
 	glBegin(GL_QUADS);
-		glNormal3fv(n);
+		glColor4f(a->colors[0], a->colors[1], a->colors[2], a->colors[3]);
 		glVertex3fv(a->points[0]);
-		glNormal3fv(n);
 		glVertex3fv(a->points[1]);
-		glNormal3fv(n);
 		glVertex3fv(a->points[2]);
-		glNormal3fv(n);
 		glVertex3fv(a->points[3]);
 	glEnd();
 }
 
 void setLight() {
-	float light1Pos[] = {0.0, 0.0, 1.0, 0.0};
+	float light0Pos[] = {100.0, 100.0, 100.0, 0.0};
 	float black[] = {0.0, 0.0, 0.0, 1.0};
 	float white[] = {1.0, 1.0, 1.0, 1.0};
-	glLightfv(GL_LIGHT1, GL_POSITION, light1Pos);
-	glLightfv(GL_LIGHT1, GL_AMBIENT, white);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, white);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, white);
-}
-
-float* getNV(float* p0, float* p1, float* p2) {
-	//cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<endl;
-	//cout<<"p1 : "<<p1[0]<<", "<<p1[1]<<", "<<p1[2]<<endl;
-	//cout<<"p2 : "<<p2[0]<<", "<<p2[1]<<", "<<p2[2]<<endl;
-	float* ret = (float*)malloc(sizeof(float)*3);
-	double v1[3];
-	double v2[3];
-	for(int i = 0; i < 3; i++) {
-		v1[i] = (double)p1[i] - (double)p0[i];
-		v2[i] = (double)p2[i] - (double)p0[i];
-	}
-	double *temp = crossProduct(v1, v2);
-	double len = length(temp, 3);
-	for(int i = 0; i < 3; i++) ret[i] = (float)temp[i] / (float)len;
-	free(temp);
-	//cout<<"normal vector : "<< ret[0]<<", "<<ret[1]<<", "<<ret[2]<<endl;
-	return ret;
+	glLightfv(GL_LIGHT0, GL_POSITION, light0Pos);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, white);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, white);
 }
 int main(int argc, char** argv) {
 	cout<<"please enter your file name : ";
@@ -965,9 +874,11 @@ int main(int argc, char** argv) {
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClearDepth(1.0);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LIGHTING);
-	setLight();
-	glDepthFunc(GL_LESS);
+	glEnable(GL_BLEND);
+	//glEnable(GL_LIGHTING);
+	//setLight();
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthFunc(GL_LEQUAL);
 	glMatrixMode(GL_PROJECTION);
 	setView(70.0, 90.0, 70.0, 0.0, 20.0, 0.0, 0.0, 1.0, 0.0);
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
