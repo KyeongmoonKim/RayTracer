@@ -62,9 +62,14 @@ int* depthCheck;
 Rect* rts;
 void setRts(string str);
 void drawRect(Rect* a);
+void drawRect2(Rect* a); //partioning
 void setLight();
+int light0;
 int light1;
+int light2;
 float* getNV(float* p0, float *p1, float *p2);
+int test1=1;
+int test2=1;
 
 void myDraw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -222,16 +227,20 @@ void myDraw() {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glCullFace(GL_FRONT);
 		//glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+		if(test1==1) {
 		{//part for fack-face
 			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 0) drawRect(&rts[i]);
+				if(depthCheck[i] == 0) drawRect(&rts[i]); //it must be 0
 			}
 		}
+		}
+		if(test2==1) {
 		{//part for front-face
 			
 			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 1) drawRect(&rts[i]);
+				if(depthCheck[i] == 1) drawRect(&rts[i]); //it must be 1
 			}
+		}
 		}
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
@@ -305,14 +314,39 @@ void myKeyboard(unsigned char key, int x, int y) {
 		std::cout<<"scale : "<<scale<<std::endl;
 		break;
 		case 'e':
+		if(light0 == 0) {
+			glEnable(GL_LIGHT0);
+			light0 = 1;
+		} else {
+			glDisable(GL_LIGHT0);
+			light0 = 0;
+		}
+		break;
+		case 'r':
 		if(light1 == 0) {
 			glEnable(GL_LIGHT1);
 			light1 = 1;
-		}
-		else {
+		} else {
 			glDisable(GL_LIGHT1);
 			light1 = 0;
 		}
+		break;
+		case 't':
+		if(light2 == 0) {
+			glEnable(GL_LIGHT2);
+			light2 = 1;
+		} else {
+			glDisable(GL_LIGHT2);
+			light2 = 0;
+		}
+		break;
+		case '[':
+		if(test1==0) test1=1;
+		else test1=0;
+		break;
+		case ']':
+		if(test2==0) test2=1;
+		else test2=0;
 		break;
 		defalut:
 		break;
@@ -892,6 +926,102 @@ void setRts(string str) {
 	inputFile.close();
 }
 
+void drawRect2(Rect* a) {
+	float n[3];
+	float amb[4];
+	float dif[3];
+	float spe[3];
+	for(int i = 0; i < 3; i++) {
+		amb[i] = a->ks[0];
+		dif[i] = a->ks[1] * a->colors[i];
+		spe[i] = a->ks[2];
+	}
+	amb[3] = 1.0;
+	for(int i = 0; i < 3; i++) n[i] = a->nv[i];
+	float shin = (float)a->n;
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, amb);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, dif);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shin);
+	int horizon = 10;
+	int vertical = 10;
+	float v01[3];
+	float v32[3];
+	for(int i = 0; i < 3; i++) v01[i] = (a->points[1][i] - a->points[0][i])/(float)vertical; //rectp0 -> rectp1 vector
+	for(int i = 0; i < 3; i++) v32[i] = (a->points[2][i] - a->points[3][i])/(float)vertical; //rectp3 -> rectp2 vector
+	float* p0 = (float *)malloc(sizeof(float)*3);
+	float* p3 = (float *)malloc(sizeof(float)*3);
+	float* p1;
+	float* p2;
+	for(int i = 0; i < 3; i++) {
+		p0[i] = a->points[0][i];
+		p3[i] = a->points[3][i];
+	}
+	for(int i = 0; i < vertical-1; i++) {
+		p1 = (float *)malloc(sizeof(float)*3);
+		p2 = (float *)malloc(sizeof(float)*3);
+		if(i != vertical - 2) {
+			for(int j = 0; j < 3; j++) {
+				p1[j] = p0[j] + v01[j];
+				p2[j] = p3[j] + v32[j];
+			}
+		} else {
+			for(int j = 0; j < 3; j++) {
+				p1[j] = a->points[1][j];
+				p2[j] = a->points[2][j];
+			}
+		}
+		float v03[3];
+		float v12[3];
+		for(int j = 0; j < 3; j++) {
+			v03[j] = (p3[j] - p0[j])/(float)horizon;
+			v12[j] = (p2[j] - p1[j])/(float)horizon;
+		}
+		float* c0 = (float *)malloc(sizeof(float) * 3);
+		float* c1 = (float *)malloc(sizeof(float) * 3);
+		float* c2;
+		float* c3;
+		for(int k = 0; k < 3; k++) {
+			c0[k] = p0[k];
+			c1[k] = p1[k];
+		}
+		for(int j = 0; j < horizon-1; j++) {
+			cout<<j<<endl;
+			c2 = (float *)malloc(sizeof(float)*3);
+			c3 = (float *)malloc(sizeof(float)*3);
+			if(j != horizon - 2) {
+				for(int k = 0; k < 3; k++) {
+					c3[k] = c0[k] + v03[k];
+					c2[k] = c1[k] + v12[k];
+				}
+			} else {
+				for(int k = 0; k < 3; k++) {
+					c3[k] = p3[k];
+					c2[k] = p2[k];
+				}
+			}
+			glNormal3fv(n);
+			glBegin(GL_QUADS);
+				glVertex3fv(c0);
+				glVertex3fv(c1);
+				glVertex3fv(c2);
+				glVertex3fv(c3);
+			glEnd();
+			free(c0);
+			free(c1);
+			c0 = c3;
+			c1 = c2;
+		}
+		free(c0);
+		free(c1);
+		free(p0);
+		free(p3);
+		p0 = p1;
+		p3 = p2;
+	}
+	free(p0);
+	free(p3);
+}
 void drawRect(Rect* a) {
 	float n[3];
 	float amb[4];
@@ -916,16 +1046,37 @@ void drawRect(Rect* a) {
 		glVertex3fv(a->points[2]);
 		glVertex3fv(a->points[3]);
 	glEnd();
+	//test part
+	/*for(int i =0; i < 3; i++) n[i] = -1.0 * n[i];
+	glNormal3fv(n);
+	glBegin(GL_QUADS);
+		glVertex3fv(a->points[0]);
+		glVertex3fv(a->points[3]);
+		glVertex3fv(a->points[2]);
+		glVertex3fv(a->points[1]);
+	glEnd();*/
 }
 
 void setLight() {
-	float light1Pos[] = {0.0, 0.0, 1.0, 0.0};
+	float light0Pos[] = {0.0, 0.0, 1.0, 0.0};
+	float light1Pos[] = {0.0, 1.0, 0.0, 0.0};
+	float light2Pos[] = {1.0, 0.0, 0.0, 0.0};
 	float black[] = {0.0, 0.0, 0.0, 1.0};
-	float white[] = {1.0, 1.0, 1.0, 1.0};
+	float difWhite[] = {1.0, 1.0, 1.0, 1.0};
+	float ambWhite[] = {0.1, 0.1, 0.1, 1.0};
+	float speWhite[] = {0.4, 0.4, 0.4, 1.0};
+	glLightfv(GL_LIGHT0, GL_POSITION, light0Pos);
 	glLightfv(GL_LIGHT1, GL_POSITION, light1Pos);
-	glLightfv(GL_LIGHT1, GL_AMBIENT, white);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, white);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, white);
+	glLightfv(GL_LIGHT2, GL_POSITION, light2Pos);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambWhite);
+	glLightfv(GL_LIGHT1, GL_AMBIENT, ambWhite);
+	glLightfv(GL_LIGHT2, GL_AMBIENT, ambWhite);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, difWhite);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, difWhite);
+	glLightfv(GL_LIGHT2, GL_DIFFUSE, difWhite);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, speWhite);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, speWhite);
+	glLightfv(GL_LIGHT2, GL_SPECULAR, speWhite);
 }
 
 float* getNV(float* p0, float* p1, float* p2) {
@@ -961,8 +1112,8 @@ int main(int argc, char** argv) {
 	glutCreateWindow("An Example");
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClearDepth(1.0);
-	float modelTwoside[] = {GL_TRUE};
-	glLightModelfv(GL_LIGHT_MODEL_TWO_SIDE, modelTwoside);
+	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
+	//glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
 	setLight();
