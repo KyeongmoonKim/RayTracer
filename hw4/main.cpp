@@ -52,10 +52,11 @@ float** movePv(float** pv, float scala, float* rv, float *tv, int n);
 //hw4
 typedef struct rect {
 	float points[4][3];
-	float colors[4];
+	float amb[4];
+	float dif[4];
+	float spe[4];
 	double nv[4];
-	int n;
-	float ks[3];
+	float n;
 } Rect;
 int rectNum;
 int* depthCheck;
@@ -90,7 +91,9 @@ void myDraw() {
 			glVertex3f(3, 0, d); 
 		glEnd();
 	}
+	//setLight();
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
+	setLight();
 	depthCheck = (int *)malloc(sizeof(int)*rectNum);
 	/*double center[3];
 	for(int i = 0; i < rectNum; i++) {
@@ -114,7 +117,6 @@ void myDraw() {
 		else depthCheck[i] = 1; //frontFace
 	}
 	//for(int i= 0; i < rectNum; i++) cout<<"depthCheck " <<i<<" : "<<depthCheck[i]<<endl;
-	//glTranslatef(0.0, -20.0, 0.0);
 	glPushMatrix();
 	{//start drawing
 		int time = 5;
@@ -225,8 +227,8 @@ void myDraw() {
 		glEnable(GL_BLEND);
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glCullFace(GL_FRONT);
-		//glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_FRONT);
 		if(test1==1) {
 		{//part for fack-face
 			for(int i = 0; i < rectNum; i++) {
@@ -234,6 +236,7 @@ void myDraw() {
 			}
 		}
 		}
+		//glCullFace(GL_BACK);
 		if(test2==1) {
 		{//part for front-face
 			
@@ -244,7 +247,7 @@ void myDraw() {
 		}
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
-		glCullFace(GL_BACK);
+		//glDisable(GL_CULL_FACE);
 		free(temp);
 		free(pv);
 		free(depthCheck);
@@ -875,7 +878,7 @@ void setRts(string str) {
 		rectNum = stoi(line);
 	}
 	rts = (Rect*)malloc(sizeof(Rect)*rectNum);
-	int lineNum = 8; // line per 1 rect
+	int lineNum = 9; // line per 1 rect
 	int lineIdx = 0;
 	int rectIdx = 0;
 	while(!inputFile.eof()) {
@@ -890,16 +893,34 @@ void setRts(string str) {
 				line = line.substr(found+1, line.length());
 			}
 			lineIdx++;
-		} else if(lineIdx < 5) {//color+transparency
+		} else if(lineIdx < 5) {//amb
 			for(int i = 0; i < 4; i++) {
 				size_t found = line.find_first_of(' ');
 				if(found==-1) found = line.length();
-				rts[rectIdx].colors[i] = stof(line.substr(0, found));
+				rts[rectIdx].amb[i] = stof(line.substr(0, found));
 				if(i == 3) break;
 				line = line.substr(found+1, line.length());
 			}
 			lineIdx++;
-		} else if(lineIdx < 6) {//normal vector
+		} else if(lineIdx < 6) {//dif
+			for(int i = 0; i < 4; i++) {
+				size_t found = line.find_first_of(' ');
+				if(found==-1) found = line.length();
+				rts[rectIdx].dif[i] = stof(line.substr(0, found));
+				if(i == 3) break;
+				line = line.substr(found+1, line.length());
+			}
+			lineIdx++;
+		} else if(lineIdx < 7) {//spe
+			for(int i = 0; i < 4; i++) {
+				size_t found = line.find_first_of(' ');
+				if(found==-1) found = line.length();
+				rts[rectIdx].spe[i] = stof(line.substr(0,found));
+				if(i == 3) break;
+				line = line.substr(found+1, line.length());
+			}
+			lineIdx++;
+		} else if(lineIdx < 8) {//normal vector
 			for(int i = 0; i < 4; i++) {
 				size_t found = line.find_first_of(' ');
 				if(found == -1) found = line.length();
@@ -908,17 +929,8 @@ void setRts(string str) {
 				line = line.substr(found+1, line.length());
 			}
 			lineIdx++;
-		} else if(lineIdx < 7) {//ks
-			for(int i = 0; i < 3; i++) {
-				size_t found = line.find_first_of(' ');
-				if(found==-1) found = line.length();
-				rts[rectIdx].ks[i] = stof(line.substr(0, found));
-				if(i==2) break;
-				line = line.substr(found+1, line.length());
-			}
-			lineIdx++;
 		} else if(lineIdx < lineNum) {//n
-			rts[rectIdx].n = stoi(line);
+			rts[rectIdx].n = stof(line);
 			lineIdx = 0;
 			rectIdx++;
 		}
@@ -928,20 +940,11 @@ void setRts(string str) {
 
 void drawRect2(Rect* a) {
 	float n[3];
-	float amb[4];
-	float dif[3];
-	float spe[3];
-	for(int i = 0; i < 3; i++) {
-		amb[i] = a->ks[0];
-		dif[i] = a->ks[1] * a->colors[i];
-		spe[i] = a->ks[2];
-	}
-	amb[3] = 1.0;
 	for(int i = 0; i < 3; i++) n[i] = a->nv[i];
 	float shin = (float)a->n;
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, amb);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, dif);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, a->amb);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, a->dif);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, a->spe);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shin);
 	int horizon = 10;
 	int vertical = 10;
@@ -1024,20 +1027,11 @@ void drawRect2(Rect* a) {
 }
 void drawRect(Rect* a) {
 	float n[3];
-	float amb[4];
-	float dif[3];
-	float spe[3];
-	for(int i = 0; i < 3; i++) {
-		amb[i] = a->ks[0];
-		dif[i] = a->ks[1] * a->colors[i];
-		spe[i] = a->ks[2];
-	}
-	amb[3] = 1.0;
 	for(int i = 0; i < 3; i++) n[i] = a->nv[i]; //because to colorin
 	float shin = (float)a->n;
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, amb);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, dif);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, a->amb);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, a->dif);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, a->spe);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shin);
 	glNormal3fv(n);
 	glBegin(GL_QUADS);
@@ -1059,24 +1053,25 @@ void drawRect(Rect* a) {
 
 void setLight() {
 	float light0Pos[] = {0.0, 0.0, 1.0, 0.0};
-	float light1Pos[] = {0.0, 1.0, 0.0, 0.0};
-	float light2Pos[] = {1.0, 0.0, 0.0, 0.0};
+	float light1Pos[] = {-1.0, -1.0, -1.0, 0.0};
+	float light2Pos[] = {0.0, 0.0, 25.0, 1.0};
+	float dirVector2[] = {0.0, 0.0, -1.0};
 	float black[] = {0.0, 0.0, 0.0, 1.0};
-	float difWhite[] = {1.0, 1.0, 1.0, 1.0};
-	float ambWhite[] = {0.1, 0.1, 0.1, 1.0};
-	float speWhite[] = {0.4, 0.4, 0.4, 1.0};
+	float difWhite[] = {1.0, 1.0, 1.0, 0.0};
+	float ambWhite[] = {0.3, 0.3, 0.3, 0.0};
+	float speWhite[] = {0.5, 0.5, 0.5, 0.0};
 	glLightfv(GL_LIGHT0, GL_POSITION, light0Pos);
 	glLightfv(GL_LIGHT1, GL_POSITION, light1Pos);
 	glLightfv(GL_LIGHT2, GL_POSITION, light2Pos);
+	glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, dirVector2);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambWhite);
 	glLightfv(GL_LIGHT1, GL_AMBIENT, ambWhite);
-	glLightfv(GL_LIGHT2, GL_AMBIENT, ambWhite);
+	glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, difWhite);
 	glLightfv(GL_LIGHT1, GL_DIFFUSE, difWhite);
-	glLightfv(GL_LIGHT2, GL_DIFFUSE, difWhite);
+	glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 2.5);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, speWhite);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, speWhite);
-	glLightfv(GL_LIGHT2, GL_SPECULAR, speWhite);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, speWhite);;
 }
 
 float* getNV(float* p0, float* p1, float* p2) {
@@ -1112,11 +1107,11 @@ int main(int argc, char** argv) {
 	glutCreateWindow("An Example");
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClearDepth(1.0);
-	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
-	//glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
-	setLight();
+	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
+	glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0);
+	//setLight();
 	glDepthFunc(GL_LESS);
 	glMatrixMode(GL_PROJECTION);
 	setView(70.0, 90.0, 70.0, 0.0, 20.0, 0.0, 0.0, 1.0, 0.0);
