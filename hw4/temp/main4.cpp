@@ -49,7 +49,6 @@ float* Qlog(double *q);
 double* Qexp(float *v);
 double* Qinverse(double *q);
 float** movePv(float** pv, float scala, float* rv, float *tv, int n);
-void drawSword(int idx, float x, float y, float z);
 //hw4
 typedef struct rect {
 	float points[4][3];
@@ -187,6 +186,10 @@ void myDraw() {
 					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, cv);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
 					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 90.0);
+					/*glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, rts[2].amb);
+					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, rts[2].dif);
+					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rts[2].spe);
+					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, rts[2].n);*/
 					float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
 					glNormal3f(n[0], n[1], n[2]);
 					free(n);
@@ -209,12 +212,6 @@ void myDraw() {
 				t+=d;
 			}
 		}
-		drawSword(0, 20, 0, 0);
-		drawSword(1, 0, 0, 20);
-		drawSword(2, 20, 0, 20);
-		drawSword(3, -20, 0, 0);
-		drawSword(4, -20, 0, 20);
-		drawSword(5, 20, 0, -20);
 		glEnable(GL_BLEND);
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1084,103 +1081,6 @@ float* getNV(float* p0, float* p1, float* p2) {
 	free(temp);
 	//cout<<"normal vector : "<< ret[0]<<", "<<ret[1]<<", "<<ret[2]<<endl;
 	return ret;
-}
-
-void drawSword(int idx, float x, float y, float z) {
-	glPushMatrix();
-	{
-		glTranslatef(x, y, z);
-		int time = 5;
-		float d = 1.0 / (float)time;
-		float tv[3];
-		float* rv = (float*)malloc(sizeof(float)*4);
-		float sv;
-		float **pv;
-		float **before;
-		float **after;
-		float **temp;
-		int distNum = 5;
-		int polyNum = contNum * distNum;
-		float dd = 1.0f / (float)distNum;
-		float cd = 1.0f / (float)polyNum;
-		float amb[] = {0.1, 0.1, 0.1, 1.0};
-		float dif[] = {0.2, 0.2, 0.2, 1.0};
-		float spe[] = {0.5, 0.5, 0.5, 1.0};
-		int cCheck = 0;
-		temp = (float**)malloc(sizeof(float*)*polyNum);
-		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < polyNum; i++) {
-			for(int j = 0; j < 3; j++) {
-				if(type==0) temp[i][j] = cPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
-				else temp[i][j] = bPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(        i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
-			}
-		}
-		before = movePv(temp, scalas[1], rotats[1], posits[1], polyNum);
-		pv = (float**)malloc(sizeof(float*)*contNum);
-		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < sectNum-3; i++) {
-			float t = 0.0f;
-			for(int j = 0; j <= time; j++) {
-				if(j==time) t = 1.0f;
-				for(int k=0; k < 3; k++) {
-					tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
-				}
-				rv = newRv(t, rotats[i], rotats[i+1], rotats[i+2], rotats[i+3]);
-				sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
-				for(int k=0; k < contNum; k++) {
-					for(int l = 0; l < 3; l++) {
-						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
-					}
-				}
-				for(int k = 0; k < polyNum; k++) {
-					for(int l = 0; l < 3; l++) {
-						if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
-						else temp[k][l] = bPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
-					}
-				}
-				after = movePv(temp, sv, rv, tv, polyNum);
-				float cv[4];
-				for(int k = 0; k < polyNum; k++) {
-					if(k < polyNum/2) {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * cd*k;
-						cv[2] = dif[2] * (1.0-cd*k);
-						cv[3] = 1.0;
-					}
-					else {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * (cd*(polyNum - k));
-						cv[2] = dif[2] * (1.0 - cd*(polyNum - k));
-						cv[3] = 1.0;
-					}
-					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, rts[idx].amb);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, rts[idx].dif);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rts[idx].spe);
-					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, rts[idx].n);
-					float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
-					glBegin(GL_TRIANGLES);
-						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(before[k]);
-						glVertex3fv(after[k]);
-					glEnd();
-					n = getNV(after[k], after[(k+1)%polyNum], before[(k+1)%polyNum]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
-					glBegin(GL_TRIANGLES);
-						glVertex3fv(after[k]);
-						glVertex3fv(after[(k+1)%polyNum]);
-						glVertex3fv(before[(k+1)%polyNum]);
-					glEnd();
-				}
-				free(before);
-				before = after;
-				t+=d;
-			}
-		}
-	}
-	glPopMatrix();
 }
 int main(int argc, char** argv) {
 	cout<<"please enter your file name : ";
