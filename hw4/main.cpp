@@ -65,8 +65,8 @@ void setRts(string str);
 void drawRect(Rect* a);
 void drawRect2(Rect* a); //partioning
 void setLight();
-int light0;
-int light1;
+int light0 = 0;
+int light1 = 0;
 int light2;
 float* getNV(float* p0, float *p1, float *p2);
 int test1=1;
@@ -186,13 +186,14 @@ void myDraw() {
 					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, cv);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
 					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 90.0);
+					/*glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, rts[2].amb);
+					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, rts[2].dif);
+					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rts[2].spe);
+					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, rts[2].n);*/
 					float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
 					glNormal3f(n[0], n[1], n[2]);
 					free(n);
 					glBegin(GL_TRIANGLES);
-						/*glVertex3fv(before[k]);
-						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(after[k]);*/
 						glVertex3fv(before[(k+1)%polyNum]);
 						glVertex3fv(before[k]);
 						glVertex3fv(after[k]);
@@ -201,9 +202,6 @@ void myDraw() {
 					glNormal3f(n[0], n[1], n[2]);
 					free(n);
 					glBegin(GL_TRIANGLES);
-						/*glVertex3fv(after[(k+1)%polyNum]);
-						glVertex3fv(after[k]);
-						glVertex3fv(before[(k+1)%polyNum]);*/
 						glVertex3fv(after[k]);
 						glVertex3fv(after[(k+1)%polyNum]);
 						glVertex3fv(before[(k+1)%polyNum]);
@@ -211,16 +209,6 @@ void myDraw() {
 				}
 				free(before);
 				before = after;
-				/*glPushMatrix();
-				{
-					glColor4f(0.0, 0.0, 0.0, 1.0);
-					glTranslatef(tv[0], tv[1], tv[2]);
-					glRotatef(rv[0]*180.0f / PI, rv[1], rv[2], rv[3]);
-					glScalef(sv, sv, sv);
-					if(type==0) cDraw(pv, 5);
-					else bDraw(pv, 5);
-				}
-				glPopMatrix();*/
 				t+=d;
 			}
 		}
@@ -232,7 +220,7 @@ void myDraw() {
 		if(test1==1) {
 		{//part for fack-face
 			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 0) drawRect(&rts[i]); //it must be 0
+				if(depthCheck[i] == 0) drawRect2(&rts[i]); //it must be 0
 			}
 		}
 		}
@@ -241,7 +229,7 @@ void myDraw() {
 		{//part for front-face
 			
 			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 1) drawRect(&rts[i]); //it must be 1
+				if(depthCheck[i] == 1) drawRect2(&rts[i]); //it must be 1
 			}
 		}
 		}
@@ -1054,23 +1042,26 @@ void drawRect(Rect* a) {
 void setLight() {
 	float light0Pos[] = {0.0, 0.0, 1.0, 0.0};
 	float light1Pos[] = {1.0, 1.0, 1.0, 0.0};
-	float light2Pos[] = {0.0, 0.0, -1.0, 0.0};
-	float dirVector2[] = {0.0, 0.0, -1.0};
+	float light2Pos[] = {1.0, 1.0, 1.0, 1.0};
+	float dirVector2[] = {-1.0, -1.0, -1.0};
 	float black[] = {0.0, 0.0, 0.0, 1.0};
-	float difWhite[] = {1.0, 1.0, 1.0, 0.3};
-	float ambWhite[] = {0.2, 0.2, 0.2, 0.3};
-	float speWhite[] = {0.5, 0.5, 0.5, 0.3};
+	float difWhite[] = {1.0, 1.0, 1.0, 1.0};
+	float ambWhite[] = {0.1, 0.1, 0.1, 1.0};
+	float speWhite[] = {1.0, 1.0, 1.0, 1.0};
 	glLightfv(GL_LIGHT0, GL_POSITION, light0Pos);
-	glLightfv(GL_LIGHT1, GL_POSITION, light1Pos);
-	glLightfv(GL_LIGHT2, GL_POSITION, light2Pos);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambWhite);
-	glLightfv(GL_LIGHT1, GL_AMBIENT, ambWhite);
-	glLightfv(GL_LIGHT2, GL_AMBIENT, difWhite);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, difWhite);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, difWhite);
-	glLightfv(GL_LIGHT2, GL_DIFFUSE, speWhite);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, speWhite);
+	glLightfv(GL_LIGHT1, GL_POSITION, light1Pos);
+	glLightfv(GL_LIGHT1, GL_AMBIENT, ambWhite);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, difWhite);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, speWhite);
+	glLightfv(GL_LIGHT2, GL_POSITION, light2Pos);
+	glLightfv(GL_LIGHT2, GL_AMBIENT, difWhite);
+	glLightfv(GL_LIGHT2, GL_DIFFUSE, speWhite);
+	glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, dirVector2);
+	glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
+	glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 2.5);
 }
 
 float* getNV(float* p0, float* p1, float* p2) {
@@ -1108,8 +1099,9 @@ int main(int argc, char** argv) {
 	glClearDepth(1.0);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
-	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
-	glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	//glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
 	//setLight();
 	glDepthFunc(GL_LESS);
 	glMatrixMode(GL_PROJECTION);
