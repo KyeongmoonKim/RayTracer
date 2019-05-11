@@ -96,28 +96,15 @@ void myDraw() {
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
 	//setLight();
 	depthCheck = (int *)malloc(sizeof(int)*rectNum);
-	/*double center[3];
-	for(int i = 0; i < rectNum; i++) {
-		for(int j = 0; j < 4; j++) {
-			center[0] += rts[i].points[j][0];
-			center[1] += rts[i].points[j][1];
-			center[2] += rts[i].points[j][2];
-		}
-	}
-	for(int i = 0; i < 3; i++) center[i] /= rectNum*4;*/
 	double viewing[3];
 	for(int i = 0; i < 3; i++) viewing[i] = pref[i]-p0[i];
 	double len = length(viewing, 3);
 	for(int i = 0; i < 3; i++) viewing[i] = viewing[i]/len;
-	//cout << "viewing(-z) : "<<viewing[0]<<", "<<viewing[1]<<", "<<viewing[2]<<endl;
 	for(int i = 0; i < rectNum; i++) {
-		//cout<<"dotProduct " << i << " : "<< dotProduct(viewing, rts[i].nv)<<endl;
-		//cout<<"using Polyhera decide " << i << " : "<< dotProduct(p0, rts[i].nv) + rts[i].nv[3]<<endl;
 		if(dotProduct(viewing, rts[i].nv) > 0) depthCheck[i] = 0; //backFace
 		//if(dotProduct(rts[i].nv, p0) + rts[i].nv[3] < 0) depthCheck[i] = 0;
 		else depthCheck[i] = 1; //frontFace
 	}
-	//for(int i= 0; i < rectNum; i++) cout<<"depthCheck " <<i<<" : "<<depthCheck[i]<<endl;
 	glPushMatrix();
 	{//start drawing
 		drawSword(0, 0, 0, 0);
@@ -294,6 +281,7 @@ void moveCameraX(int check) {
 		pref[i] += (double)check *temp[i];
 	} //translation
 	free(temp);
+	return;
 }
 
 void moveCameraY(int check) {
@@ -311,6 +299,7 @@ void moveCameraY(int check) {
 	}
 	free(vX);
 	free(temp);
+	return;
 }
 
 void moveCameraZ(int check) {
@@ -321,6 +310,7 @@ void moveCameraZ(int check) {
 		p0[i] += (double)check * scale * temp[i] / d;
 		pref[i] += (double)check * scale *temp[i] / d;
 	} //z - axis translation
+	return;
 }
 
 double* crossProduct(double *v1, double *v2) {
@@ -347,6 +337,7 @@ void moveTbCenter(int check) {
 	double d = length(v, 3);
 	if(check == -1 && fabs(d - 1.0) < 0.001) return;
 	for(int i = 0; i < 3; i++) pref[i] += (double)check * v[i] / d;
+	return;
 }
 
 void trackBallZ(int check) {
@@ -383,6 +374,7 @@ void trackBallZ(int check) {
 	free(xAxis);
 	free(yAxis);
 	free(temp);
+	return;
 }
 
 void trackBallXY() {
@@ -444,6 +436,7 @@ void trackBallXY() {
 	free(yAxis);
 	free(temp1);
 	free(temp2);
+	return;
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
@@ -600,6 +593,7 @@ void cDraw(float **cts, int time) {
 		glVertex3f(cts[(i+2)%contNum][0], cts[(i+2)%contNum][1], cts[(i+2)%contNum][2]);
 		glEnd();
 	}
+	return;
 }
 void bDraw(float **cts, int time) {
 	float d = (1.0f / (float)time);
@@ -616,6 +610,7 @@ void bDraw(float **cts, int time) {
 		}
 		glEnd();
 	}
+	return;
 }
 
 float** movePv(float** pv, float scala, float *rv, float *tv, int n) {
@@ -630,11 +625,13 @@ float** movePv(float** pv, float scala, float *rv, float *tv, int n) {
 		for(int j =1; j < 4; j++) {
 			pq[j] = (double)ret[i][j-1];
 		}
-		double *newQ = Qmulti(rq, Qmulti(pq, rqi));
+		double *temp = Qmulti(pq, rqi);
+		double *newQ = Qmulti(rq, temp);
 		for(int j =0; j< 3; j++) {
 			ret[i][j] = newQ[j+1] + tv[j];
 		}
 		free(newQ);
+		free(temp);
 	}
 	free(rq);
 	free(rqi);
@@ -1017,7 +1014,6 @@ void drawSword(int idx, float x, float y, float z) {
 		int distNum = 5;
 		int polyNum = contNum * distNum;
 		float dd = 1.0f / (float)distNum;
-		float cd = 1.0f / (float)polyNum;
 		float amb[] = {0.1, 0.1, 0.1, 1.0};
 		float dif[] = {0.2, 0.2, 0.2, 1.0};
 		float spe[] = {0.5, 0.5, 0.5, 1.0};
@@ -1054,20 +1050,7 @@ void drawSword(int idx, float x, float y, float z) {
 					}
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
-				float cv[4];
 				for(int k = 0; k < polyNum; k++) {
-					if(k < polyNum/2) {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * cd*k;
-						cv[2] = dif[2] * (1.0-cd*k);
-						cv[3] = 1.0;
-					}
-					else {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * (cd*(polyNum - k));
-						cv[2] = dif[2] * (1.0 - cd*(polyNum - k));
-						cv[3] = 1.0;
-					}
 					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, rts[idx].amb);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, rts[idx].dif);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rts[idx].spe);
@@ -1090,6 +1073,7 @@ void drawSword(int idx, float x, float y, float z) {
 					glEnd();
 				}
 				free(before);
+				free(rv);
 				before = after;
 				t+=d;
 			}
