@@ -1005,7 +1005,7 @@ void drawSword(int idx, float x, float y, float z) {
 		int time = 5;
 		float d = 1.0 / (float)time;
 		float tv[3];
-		float* rv = (float*)malloc(sizeof(float)*4);
+		float* rv;
 		float sv;
 		float **pv;
 		float **before;
@@ -1014,9 +1014,6 @@ void drawSword(int idx, float x, float y, float z) {
 		int distNum = 5;
 		int polyNum = contNum * distNum;
 		float dd = 1.0f / (float)distNum;
-		float amb[] = {0.1, 0.1, 0.1, 1.0};
-		float dif[] = {0.2, 0.2, 0.2, 1.0};
-		float spe[] = {0.5, 0.5, 0.5, 1.0};
 		int cCheck = 0;
 		temp = (float**)malloc(sizeof(float*)*polyNum);
 		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
@@ -1072,11 +1069,17 @@ void drawSword(int idx, float x, float y, float z) {
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
 				}
+				for(int k = 0; k < contNum; k++) free(before[k]);
 				free(before);
 				free(rv);
 				before = after;
 				t+=d;
 			}
+		}
+		for(int i = 0; i < contNum; i++) {
+			free(before[i]);
+			free(pv[i]);
+			free(temp[i]);
 		}
 		free(before);
 		free(pv);
