@@ -96,151 +96,43 @@ void myDraw() {
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
 	//setLight();
 	depthCheck = (int *)malloc(sizeof(int)*rectNum);
-	/*double center[3];
-	for(int i = 0; i < rectNum; i++) {
-		for(int j = 0; j < 4; j++) {
-			center[0] += rts[i].points[j][0];
-			center[1] += rts[i].points[j][1];
-			center[2] += rts[i].points[j][2];
-		}
-	}
-	for(int i = 0; i < 3; i++) center[i] /= rectNum*4;*/
 	double viewing[3];
 	for(int i = 0; i < 3; i++) viewing[i] = pref[i]-p0[i];
 	double len = length(viewing, 3);
 	for(int i = 0; i < 3; i++) viewing[i] = viewing[i]/len;
-	//cout << "viewing(-z) : "<<viewing[0]<<", "<<viewing[1]<<", "<<viewing[2]<<endl;
 	for(int i = 0; i < rectNum; i++) {
-		//cout<<"dotProduct " << i << " : "<< dotProduct(viewing, rts[i].nv)<<endl;
-		//cout<<"using Polyhera decide " << i << " : "<< dotProduct(p0, rts[i].nv) + rts[i].nv[3]<<endl;
 		if(dotProduct(viewing, rts[i].nv) > 0) depthCheck[i] = 0; //backFace
 		//if(dotProduct(rts[i].nv, p0) + rts[i].nv[3] < 0) depthCheck[i] = 0;
 		else depthCheck[i] = 1; //frontFace
 	}
-	//for(int i= 0; i < rectNum; i++) cout<<"depthCheck " <<i<<" : "<<depthCheck[i]<<endl;
 	glPushMatrix();
 	{//start drawing
-		int time = 5;
-		float d = 1.0 / (float)time;
-		float tv[3];
-		float* rv = (float*)malloc(sizeof(float)*4);
-		float sv;
-		float **pv;
-		float **before;
-		float **after;
-		float **temp;
-		int distNum = 5;
-		int polyNum = contNum * distNum;
-		float dd = 1.0f / (float)distNum;
-		float cd = 1.0f / (float)polyNum;
-		float amb[] = {0.1, 0.1, 0.1, 1.0};
-		float dif[] = {0.2, 0.2, 0.2, 1.0};
-		float spe[] = {0.5, 0.5, 0.5, 1.0};
-		int cCheck = 0;
-		temp = (float**)malloc(sizeof(float*)*polyNum);
-		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < polyNum; i++) {
-			for(int j = 0; j < 3; j++) {
-				if(type==0) temp[i][j] = cPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
-				else temp[i][j] = bPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(        i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
-			}
-		}
-		before = movePv(temp, scalas[1], rotats[1], posits[1], polyNum);
-		pv = (float**)malloc(sizeof(float*)*contNum);
-		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < sectNum-3; i++) {
-			float t = 0.0f;
-			for(int j = 0; j <= time; j++) {
-				if(j==time) t = 1.0f;
-				for(int k=0; k < 3; k++) {
-					tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
-				}
-				rv = newRv(t, rotats[i], rotats[i+1], rotats[i+2], rotats[i+3]);
-				sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
-				for(int k=0; k < contNum; k++) {
-					for(int l = 0; l < 3; l++) {
-						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
-					}
-				}
-				for(int k = 0; k < polyNum; k++) {
-					for(int l = 0; l < 3; l++) {
-						if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
-						else temp[k][l] = bPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
-					}
-				}
-				after = movePv(temp, sv, rv, tv, polyNum);
-				float cv[4];
-				for(int k = 0; k < polyNum; k++) {
-					if(k < polyNum/2) {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * cd*k;
-						cv[2] = dif[2] * (1.0-cd*k);
-						cv[3] = 1.0;
-					}
-					else {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * (cd*(polyNum - k));
-						cv[2] = dif[2] * (1.0 - cd*(polyNum - k));
-						cv[3] = 1.0;
-					}
-					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, amb);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, cv);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, spe);
-					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 90.0);
-					float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
-					glBegin(GL_TRIANGLES);
-						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(before[k]);
-						glVertex3fv(after[k]);
-					glEnd();
-					n = getNV(after[k], after[(k+1)%polyNum], before[(k+1)%polyNum]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
-					glBegin(GL_TRIANGLES);
-						glVertex3fv(after[k]);
-						glVertex3fv(after[(k+1)%polyNum]);
-						glVertex3fv(before[(k+1)%polyNum]);
-					glEnd();
-				}
-				free(before);
-				before = after;
-				t+=d;
-			}
-		}
-		drawSword(0, 20, 0, 0);
+		drawSword(0, 0, 0, 0);
 		drawSword(1, 0, 0, 20);
 		drawSword(2, 20, 0, 20);
 		drawSword(3, -20, 0, 0);
 		drawSword(4, -20, 0, 20);
-		drawSword(5, 20, 0, -20);
+		drawSword(5, 20, 0, 0);
 		glEnable(GL_BLEND);
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//glEnable(GL_CULL_FACE);
-		//glCullFace(GL_FRONT);
 		if(test1==1) {
 		{//part for fack-face
 			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 0) drawRect2(&rts[i]); //it must be 0
+				if(depthCheck[i] == 0) drawRect(&rts[i]); //it must be 0
 			}
 		}
 		}
-		//glCullFace(GL_BACK);
 		if(test2==1) {
 		{//part for front-face
 			
 			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 1) drawRect2(&rts[i]); //it must be 1
+				if(depthCheck[i] == 1) drawRect(&rts[i]); //it must be 1
 			}
 		}
 		}
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
-		//glDisable(GL_CULL_FACE);
-		free(temp);
-		free(pv);
 		free(depthCheck);
 	}
 	glPopMatrix();
@@ -389,6 +281,7 @@ void moveCameraX(int check) {
 		pref[i] += (double)check *temp[i];
 	} //translation
 	free(temp);
+	return;
 }
 
 void moveCameraY(int check) {
@@ -406,6 +299,7 @@ void moveCameraY(int check) {
 	}
 	free(vX);
 	free(temp);
+	return;
 }
 
 void moveCameraZ(int check) {
@@ -416,6 +310,7 @@ void moveCameraZ(int check) {
 		p0[i] += (double)check * scale * temp[i] / d;
 		pref[i] += (double)check * scale *temp[i] / d;
 	} //z - axis translation
+	return;
 }
 
 double* crossProduct(double *v1, double *v2) {
@@ -442,6 +337,7 @@ void moveTbCenter(int check) {
 	double d = length(v, 3);
 	if(check == -1 && fabs(d - 1.0) < 0.001) return;
 	for(int i = 0; i < 3; i++) pref[i] += (double)check * v[i] / d;
+	return;
 }
 
 void trackBallZ(int check) {
@@ -469,13 +365,16 @@ void trackBallZ(int check) {
 	d = length(qRot, 4);
 	qRotI[0] = qRot[0] / d;
 	for(int i = 1; i < 4; i++) qRotI[i] = -1.0 * qRot[i] / d;
-	double* qQnew = Qmulti(qRot, Qmulti(qQ, qRotI));
+	double* temp = Qmulti(qQ, qRotI);
+	double* qQnew = Qmulti(qRot, temp);
 	for(int i = 0; i < 3; i++) viewUp[i] = (qQnew[i+1]-trans[i]) - p0[i]; //qQnew-trans is the point rotated.
 	d = length(viewUp, 3);
 	for(int i = 0; i < 3; i++) viewUp[i] = viewUp[i] / d;
 	free(qQnew);
 	free(xAxis);
 	free(yAxis);
+	free(temp);
+	return;
 }
 
 void trackBallXY() {
@@ -520,8 +419,10 @@ void trackBallXY() {
 	}
 	qRotI[0] = qRot[0] / length(qRot, 4);
 	for(int i = 1; i< 4; i++) qRotI[i] = -1.0 * qRot[i] / length(qRot, 4);
-	double* q0new = Qmulti(qRot, Qmulti(qP0, qRotI));
-	double* qViewUp = Qmulti(qRot, Qmulti(qPviewUp, qRotI));
+	double* temp1 = Qmulti(qP0, qRotI);
+	double* q0new = Qmulti(qRot, temp1);
+	double* temp2 = Qmulti(qPviewUp, qRotI);
+	double* qViewUp = Qmulti(qRot, temp2);
 	for(int i = 0; i < 3; i++) {
 		p0[i] = q0new[i+1]-trans[i]; //new p0
 		viewUp[i] = qViewUp[i+1] - q0new[i+1]; //vector doesn't need the transvector
@@ -533,6 +434,9 @@ void trackBallXY() {
 	free(rotAxis);
 	free(xAxis);
 	free(yAxis);
+	free(temp1);
+	free(temp2);
+	return;
 } //trackball for x-axis and y-axis
 
 double* Qmulti(double *q1, double *q2) {
@@ -625,7 +529,8 @@ float bezierPoint(float t, float p0, float p1, float p2, float p3) {
 	return (t3 * b0 + t2 * b1 + t* b2 + b3);
 }
 double* Qcont1(double* q0, double* q1, double *q2) {
-	double* Qtemp = Qmulti(Qinverse(q0), q2);
+	double* temp = Qinverse(q0);
+	double* Qtemp = Qmulti(temp, q2);
 	double* a = Qinverse(q0);
 	float* Vtemp = Qlog(Qtemp);
 	Vtemp[0] = Vtemp[0]/6.0f;
@@ -634,17 +539,20 @@ double* Qcont1(double* q0, double* q1, double *q2) {
 	free(Qtemp);
 	free(a);
 	free(Vtemp);
+	free(temp);
 	return ret;
 }
 
 double* Qcont2(double* q1, double* q2, double* q3) {
-	double* Qtemp = Qmulti(Qinverse(q1), q3);
+	double* temp = Qinverse(q1);
+	double* Qtemp = Qmulti(temp, q3);
 	float* Vtemp = Qlog(Qtemp);
 	Vtemp[0] = Vtemp[0]/6.0f;
 	Qtemp = Qexp(Vtemp);
 	double* ret = Qmulti(q2, Qinverse(Qtemp));
 	free(Qtemp);
 	free(Vtemp);
+	free(temp);
 	return ret;
 }
 
@@ -685,6 +593,7 @@ void cDraw(float **cts, int time) {
 		glVertex3f(cts[(i+2)%contNum][0], cts[(i+2)%contNum][1], cts[(i+2)%contNum][2]);
 		glEnd();
 	}
+	return;
 }
 void bDraw(float **cts, int time) {
 	float d = (1.0f / (float)time);
@@ -701,6 +610,7 @@ void bDraw(float **cts, int time) {
 		}
 		glEnd();
 	}
+	return;
 }
 
 float** movePv(float** pv, float scala, float *rv, float *tv, int n) {
@@ -715,11 +625,13 @@ float** movePv(float** pv, float scala, float *rv, float *tv, int n) {
 		for(int j =1; j < 4; j++) {
 			pq[j] = (double)ret[i][j-1];
 		}
-		double *newQ = Qmulti(rq, Qmulti(pq, rqi));
+		double *temp = Qmulti(pq, rqi);
+		double *newQ = Qmulti(rq, temp);
 		for(int j =0; j< 3; j++) {
 			ret[i][j] = newQ[j+1] + tv[j];
 		}
 		free(newQ);
+		free(temp);
 	}
 	free(rq);
 	free(rqi);
@@ -1093,7 +1005,7 @@ void drawSword(int idx, float x, float y, float z) {
 		int time = 5;
 		float d = 1.0 / (float)time;
 		float tv[3];
-		float* rv = (float*)malloc(sizeof(float)*4);
+		float* rv;
 		float sv;
 		float **pv;
 		float **before;
@@ -1102,10 +1014,6 @@ void drawSword(int idx, float x, float y, float z) {
 		int distNum = 5;
 		int polyNum = contNum * distNum;
 		float dd = 1.0f / (float)distNum;
-		float cd = 1.0f / (float)polyNum;
-		float amb[] = {0.1, 0.1, 0.1, 1.0};
-		float dif[] = {0.2, 0.2, 0.2, 1.0};
-		float spe[] = {0.5, 0.5, 0.5, 1.0};
 		int cCheck = 0;
 		temp = (float**)malloc(sizeof(float*)*polyNum);
 		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
@@ -1139,20 +1047,7 @@ void drawSword(int idx, float x, float y, float z) {
 					}
 				}
 				after = movePv(temp, sv, rv, tv, polyNum);
-				float cv[4];
 				for(int k = 0; k < polyNum; k++) {
-					if(k < polyNum/2) {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * cd*k;
-						cv[2] = dif[2] * (1.0-cd*k);
-						cv[3] = 1.0;
-					}
-					else {
-						cv[0] = 0.0;
-						cv[1] = dif[1] * (cd*(polyNum - k));
-						cv[2] = dif[2] * (1.0 - cd*(polyNum - k));
-						cv[3] = 1.0;
-					}
 					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, rts[idx].amb);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, rts[idx].dif);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rts[idx].spe);
@@ -1174,11 +1069,21 @@ void drawSword(int idx, float x, float y, float z) {
 						glVertex3fv(before[(k+1)%polyNum]);
 					glEnd();
 				}
+				for(int k = 0; k < contNum; k++) free(before[k]);
 				free(before);
+				free(rv);
 				before = after;
 				t+=d;
 			}
 		}
+		for(int i = 0; i < contNum; i++) {
+			free(before[i]);
+			free(pv[i]);
+			free(temp[i]);
+		}
+		free(before);
+		free(pv);
+		free(temp);
 	}
 	glPopMatrix();
 }
