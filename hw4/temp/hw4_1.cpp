@@ -92,7 +92,7 @@ void myDraw() {
 			glVertex3f(3, 0, d); 
 		glEnd();
 	}
-	setLight();
+	//setLight();
 	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
 	//setLight();
 	depthCheck = (int *)malloc(sizeof(int)*rectNum);
@@ -108,11 +108,11 @@ void myDraw() {
 	glPushMatrix();
 	{//start drawing
 		drawSword(0, 0, 0, 0);
-		drawSword(1, 0, 0, 20);
-		drawSword(2, 20, 0, 20);
-		drawSword(3, -20, 0, 0);
-		drawSword(4, -20, 0, 20);
-		drawSword(5, 20, 0, 0);
+		drawSword(1, -15, 0, -15);
+		drawSword(2, 15, 0, -15);
+		drawSword(3, 30, 0, 0);
+		drawSword(4, -30, 0, 0);
+		drawSword(5, -45, 0, -15);
 		glEnable(GL_BLEND);
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -169,11 +169,9 @@ void myKeyboard(unsigned char key, int x, int y) {
 		break;
 		case 'u': //camera zoom in
 		if(zoomAngle < 179) zoomAngle += 1.0;
-		std::cout<<"zoomAngle : "<<zoomAngle<<std::endl;
 		break;
 		case 'i': //camera zoom out
 		if(zoomAngle > 1) zoomAngle -= 1.0;
-		std::cout<<"zoomAngle : "<<zoomAngle<<std::endl;
 		break;
 		case 'o': //trackball z-axis
 		trackBallZ(-1);
@@ -193,13 +191,11 @@ void myKeyboard(unsigned char key, int x, int y) {
 		break;
 		case 'g':
 		if(scale > 0.01) scale /= 10.0;
-		std::cout<<"scale : "<<scale<<std::endl;
 		break;
 		case 'h':
 		if(scale < 100.0) scale *= 10.0;
-		std::cout<<"scale : "<<scale<<std::endl;
 		break;
-		case 'e':
+		/*case 'e':
 		if(light0 == 0) {
 			glEnable(GL_LIGHT0);
 			light0 = 1;
@@ -207,7 +203,7 @@ void myKeyboard(unsigned char key, int x, int y) {
 			glDisable(GL_LIGHT0);
 			light0 = 0;
 		}
-		break;
+		break;*/
 		case 'r':
 		if(light1 == 0) {
 			glEnable(GL_LIGHT1);
@@ -943,15 +939,6 @@ void drawRect(Rect* a) {
 		glVertex3fv(a->points[2]);
 		glVertex3fv(a->points[3]);
 	glEnd();
-	//test part
-	/*for(int i =0; i < 3; i++) n[i] = -1.0 * n[i];
-	glNormal3fv(n);
-	glBegin(GL_QUADS);
-		glVertex3fv(a->points[0]);
-		glVertex3fv(a->points[3]);
-		glVertex3fv(a->points[2]);
-		glVertex3fv(a->points[1]);
-	glEnd();*/
 }
 
 void setLight() {
@@ -977,6 +964,8 @@ void setLight() {
 	glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, dirVector2);
 	glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
 	glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 2.5);
+	glEnable(GL_LIGHT0);
+	//glEnable(GL_LIGHT1);
 }
 
 float* getNV(float* p0, float* p1, float* p2) {
@@ -1107,10 +1096,10 @@ int main(int argc, char** argv) {
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	//glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
-	//setLight();
+	setLight();
 	glDepthFunc(GL_LESS);
 	glMatrixMode(GL_PROJECTION);
-	setView(70.0, 90.0, 70.0, 0.0, 20.0, 0.0, 0.0, 1.0, 0.0);
+	setView(80.0, 100.0, 80.0, 0.0, 20.0, 0.0, 0.0, 1.0, 0.0);
 	gluPerspective(45.0, 1.0, 0.1, 400.0);
 	glutDisplayFunc(myDraw);
 	glutReshapeFunc(reShape);
