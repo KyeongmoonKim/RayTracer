@@ -94,7 +94,7 @@ void setObject(string str) {
 	spheres[0].center[0] = -10.0;
 	spheres[0].center[1] = 10.0;
 	spheres[0].center[2] = 0.0;
-	spheres[0].amb[0] = 
+	spheres[0].amb[0] = 0.0; spheres[0].amb[1] = 0.0; spheres[0].amb[2] = 0.0;
 	planes = (Plane*)malloc(sizeof(Plane)*1);
 	lights = (Light*)malloc(sizeof(Light)*1);
 	//part for test.
