@@ -1,6 +1,6 @@
 #include<stdlib.h>
 #include<math.h>
-
+#include"vect.hpp"
 double* crossProduct(double *v1, double *v2) {
 	double* ret = (double *)malloc(sizeof(double)*3); 
 	ret[0] = v1[1]*v2[2] - v1[2]*v2[1];

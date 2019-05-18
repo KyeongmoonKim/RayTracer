@@ -1,6 +1,7 @@
 #include<stdlib.h>
 #include"vect.hpp"
 #include<math.h>
+#include"quat.hpp"
 
 double* Qmulti(double *q1, double *q2) {
 	double *ret = (double *)malloc(sizeof(double) * 4);
