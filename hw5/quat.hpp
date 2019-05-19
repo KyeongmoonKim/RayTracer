@@ -3,3 +3,4 @@ float* Qlog(double *q);
 double* Qexp(float *v);
 double* Qinverse(double *q);
 double* rotate(double* point, double* center, float* rotV);
+double* rotateV(double* v, float* rotV);

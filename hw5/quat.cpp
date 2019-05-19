@@ -67,3 +67,9 @@ double* rotate(double* point, double* center, float* rotV) {
 	return ret;
 	
 }//3-d point, 3-d center, 4-d rotation vector (theta, x, y, z)
+
+double* rotateV(double* v, float* rotV) {
+	double center[3];
+	for(int i = 0; i < 3; i++) center[i] = 0.0;
+	return rotate(v, center, rotV);
+}

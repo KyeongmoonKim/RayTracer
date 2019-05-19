@@ -19,3 +19,13 @@ double length(double *v, int n) {
 	for(int i = 0; i < n; i++) ret += v[i]*v[i];
 	return sqrt(ret);
 }
+
+double rotAngle(double *v1, double *v2) {
+	double l1 = length(v1, 3);
+	double l2 = length(v2, 3);
+	double cs = dotProduct(v1, v2) / (l1 * l2);
+	double* temp = crossProduct(v1, v2);
+	double sn = length(temp, 3) / (l1 * l2);
+	free(temp);
+	return atan2(sn, cs);
+}//v1 is right hand second finger, v2 is right hand third finger. , return angle value is radian value.

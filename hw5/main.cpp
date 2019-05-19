@@ -8,8 +8,8 @@
 #include"vect.hpp"
 #include"quat.hpp"
 #define PI 3.14159265
-#define H 250
-#define W 250
+#define H 20 //init 250.
+#define W 20 //init 250.
 
 using namespace std;
 double refP[] = {10.0, 10.0, 10.0};
@@ -58,6 +58,11 @@ int main(int argc, char** argv) {
 	setObject("test");
 	for(int i = 0; i < H; i++) {
 		for(int j = 0; j < W; j++) {
+			for(int k = 0; k < 3; k++) pixels[i][j][k] = 0.0;
+		}
+	}
+	for(int i = 0; i < H; i++) {
+		for(int j = 0; j < W; j++) {
 			double* v = pixelD(i, j);
 			double* rgb = (double *)malloc(sizeof(double)*3);
 			int ret = color(refP, v, rgb);
@@ -71,6 +76,13 @@ int main(int argc, char** argv) {
 			free(v);
 			free(rgb);
 		}
+	}
+
+	for(int i = 0; i < H; i++) {
+		for(int j = 0; j < H; j++) {
+			cout<<pixels[i][j][2]<<" ";
+		}
+		cout<<endl;
 	}
 }
 
@@ -111,9 +123,17 @@ int color(double* o, double* v, double* rgb) {
 	/*
 		part for polygon.
 	*/
+
+	if(s == 20000.0) return -1; //no intersection :  basecase 
+
+
+	//intersection exists.
 	double pInter[3]; //intersected point.
 	double shadowRay[lightNum][3]; //lightsource to intersecting point vector.
+	cout<<s<<endl;
+	cout<<currIdx<<endl;
 	for(int i = 0; i < 3; i++) pInter[i] = o[i] + s * v[i];
+	cout<<"point intersected : "<<pInter[0]<<", "<<pInter[1]<<", "<<pInter[2]<<endl;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
 			shadowRay[i][j] = pInter[j]-lights[i].center[j];
@@ -121,21 +141,81 @@ int color(double* o, double* v, double* rgb) {
 		double d = length(shadowRay[i], 3);
 		for(int j = 0; j < 3; j++) shadowRay[i][j] = shadowRay[i][j] / d;
 	}//shadow ray allocation.
+	cout<<"shadow ray : "<<shadowRay[0][0]<<", "<<shadowRay[0][1]<<", "<<shadowRay[0][2]<<endl;
+	//color by direct light source.
 	double tempRgb[3]; //rgb by direct lightsource
-	double normal[3]; //normal vector of intersecting point
+	double N[3]; //normal vector of intersecting point
+	double* amb;
+	double* dif;
+	double* spe;
+	double shi;
 	if(type == 0) {
-		for(int i = 0; i < 3; i++) normal[i] = (pInter[i] - spheres[currIdx].center[i])/spheres[i].r;
+		amb = spheres[currIdx].amb;
+		dif = spheres[currIdx].dif;
+		spe = spheres[currIdx].spe;
+		shi = spheres[currIdx].shi;
+		for(int i = 0; i < 3; i++) N[i] = (pInter[i] - spheres[currIdx].center[i])/spheres[currIdx].r;
 	} else {
-		for(int i = 0; i < 3; i++) normal[i] = planes[currIdx].normal[i];
-	}
+		amb = planes[currIdx].amb;
+		dif = planes[currIdx].dif;
+		spe = spheres[currIdx].spe;
+		shi = spheres[currIdx].shi;
+		for(int i = 0; i < 3; i++) N[i] = planes[currIdx].normal[i];
+	} //informaton allocation
+	cout<<"N : "<<N[0]<<", "<<N[1]<<", "<<N[2]<<endl;
+	double V[3];
+	for(int i = 0; i < 3; i++) V[i] = -1.0 * v[i]; //reverse vector of v.
+	double** R;
+	R = (double **)malloc(sizeof(double *) * lightNum);
+	double L[lightNum][3];
+	for(int i = 0; i < lightNum; i++) {
+		for(int j = 0; j < 3; j++) {
+			L[i][j] = lights[i].center[j] - pInter[j];
+		} //intersecting point to light source vector
+		double d = length(L[i], 3);
+		for(int j = 0; j < 3; j++) {
+			L[i][j] = L[i][j] / d;
+		}//normalization.
+		cout<<"L : "<< L[i][0]<<", "<<L[i][1]<<", "<<L[i][2]<<endl;
+		double theta = 2.0 * rotAngle(N, L[i]); //rotAngle
+		double* rotAxis = crossProduct(N, L[i]); //rotAxis.
+		d = length(rotAxis, 3);
+		float rotV[4];
+		rotV[0] = 2.0*PI;
+		rotV[0] = rotV[0]-(float)theta; //rotation axis should be 0+.
+		cout<<"rotaton angle : " << rotV[0]<<endl;
+		for(int j = 1; j < 4; j++) rotV[j] = (float)rotAxis[j-1]/(float)d;
+		R[i] = rotateV(L[i], rotV);
+		cout<<"R : "<< R[i][0]<<", "<<R[i][1]<<", "<<R[i][2]<<endl;
+		free(rotAxis);
+		cout<<"temp check : " << acos(dotProduct(L[i], N)) <<", "<<acos(dotProduct(N, R[i]))<<", "<<acos(dotProduct(L[i], R[i]))<<endl;
+	} //L, R allocation.
+	//coloring start
 	for(int i = 0; i < 3; i++) tempRgb[i] = 0.0;
 	for(int i = 0; i < lightNum; i++) {
 		if(dotProduct(v, shadowRay[i]) > 0.0) {
 			for(int j = 0; j < 3; j++) {
-				//tempRgb[j] = 
+				tempRgb[j] += lights[i].amb[j]*amb[j]; //ambient caculation
+				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]); //diffuse caculation
+				tempRgb[j] += lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi);
 			}
+			cout<<"N*L : "<<dotProduct(N, L[i])<<endl;
+			cout<<"V*R : "<<dotProduct(R[i], V)<<endl;
+			cout<<"N*V : "<<dotProduct(N, V)<<endl;
 		} //light hit the point. corloring.
-	}
+	}//rgb is summation. light 0 only has amb
+	
+	/*
+		part for reflection. 
+	*/
+	/* Vnew is rotated by rotAxis = crossProduct(V, N).
+		double* rgbNew = (double *)malloc(sizeof(double)*3);
+		int reflection = color(pInter, vNew, rgbNew);
+		//coloring by reflection. and in this case, L = Vnew. R = V.
+	*/
+	for(int i = 0; i < lightNum; i++) free(R[i]);
+	free(R);
+	return 1;
 }
 
 double interSphere(double* o, double* u, Sphere* s) {
