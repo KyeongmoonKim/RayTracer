@@ -8,17 +8,17 @@
 #include"vect.hpp"
 #include"quat.hpp"
 #define PI 3.14159265
-#define H 20 //init 250.
-#define W 20 //init 250.
+#define H 250 //init 250.
+#define W 250 //init 250.
 
 using namespace std;
-double refP[] = {10.0, 10.0, 10.0};
-double windowCenter[] = {5.0, 5.0, 5.0};
+double refP[] = {100.0, 100.0, 100.0};
+double windowCenter[] = {30.0, 30.0, 30.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 int color(double* o, double* v, double* rgb); //o : reference point, v : vector, return : rgb vector
 void setObject(string str); //str is file name
-
+double calculD(double* vertex, double* normal); //normal is normal vector of plane, vertex is on the plane.
 
 	
 typedef struct lig {
@@ -44,9 +44,11 @@ typedef struct pol {
 	double spe[3];
 	double shi;
 	double normal[3];
+	double D;
 	//materials after
 } Plane;
 double interSphere(double* o, double* u, Sphere* s); //return value is s, because u is normal vector, distance is s
+double interPlane(double* o, double* u, Plane* p);
 Light* lights;
 Sphere* spheres;
 Plane* planes;
@@ -77,7 +79,20 @@ int main(int argc, char** argv) {
 			free(rgb);
 		}
 	}
-
+	
+	ofstream img ("test.ppm");
+	img << "P3" << endl;
+	img << W << " "<< H <<endl;
+	img << "255" << endl;
+	for(int i = 0; i < H; i++) {
+		for(int j = 0; j < W; j++) {
+			int r = pixels[i][j][0] * 255;
+			int g = pixels[i][j][1] * 255;
+			int b = pixels[i][j][2] * 255;
+			img <<r<<" "<<g<<" "<<b<<endl;
+		}
+	}
+	return 0;
 }
 
 double* pixelD(int row, int col) {
@@ -189,8 +204,7 @@ int color(double* o, double* v, double* rgb) {
 			}
 			*/
 			if(tS != 20000.0) break; //light isn't seen.
-			//intersect test need.
-			cout<<"light is seeing"<<endl;
+			//cout<<"light is seeing"<<endl;
 			for(int j = 0; j < 3; j++) {
 				tempRgb[j] += lights[i].amb[j]*amb[j]; //ambient caculation
 				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]); //diffuse caculation
@@ -218,7 +232,7 @@ double interSphere(double* o, double* u, Sphere* s) {
 	double b = -2.0 * dotProduct(u, deltaP);
 	double c = length(deltaP, 3) * length(deltaP, 3) - (s->r) * (s->r);
 	double temp = b*b - 4.0 * c;
-	if(temp < 0.0) { // no intersection.
+	if(temp < 0.00000001) { // no intersection.
 		return 20000.0;
 	} else if(temp > 0.00000001) { //2 point intersection
 		double s1 = (-1.0 * b - sqrt(temp)) / 2.0;
@@ -233,15 +247,21 @@ double interSphere(double* o, double* u, Sphere* s) {
 	}
 }//caculate intersect point Pi. Let, point Pi = o + s*u, return value is s. hyphothesis : o is out of sphere.
 
-
+double interPlane(double* o, double* u, Plane* p) {
+	double s = -1.0*(p->D + dotProduct(p->normal, o)) / dotProduct(p->normal, u);
+	if(s < 0.0) return 20000.0;
+	double pInter[3];
+	for(int i = 0; i < 3; i++) pInter[i] = o[i] + s * u[i];
+	//inside-outside test.
+}
 void setObject(string str) {
 	sphereNum = 1;
 	planeNum = 1;
 	lightNum = 1;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*1);
-	spheres[0].r = 5.0;
-	spheres[0].center[0] = -10.0;
-	spheres[0].center[1] = 10.0;
+	spheres[0].r = 30.0;
+	spheres[0].center[0] = 0.0;
+	spheres[0].center[1] = 0.0;
 	spheres[0].center[2] = 0.0;
 	spheres[0].amb[0] = 0.0; spheres[0].amb[1] = 0.0; spheres[0].amb[2] = 0.0;
 	spheres[0].dif[0] = 0.1; spheres[0].dif[1] = 0.35; spheres[0].dif[2] = 0.1;
@@ -253,18 +273,20 @@ void setObject(string str) {
 	planes[0].vertex = (double **)malloc(sizeof(double*)*planes[0].n);
 	for(int i = 0; i < planes[0].n; i++) 
 		planes[0].vertex[i] = (double *)malloc(sizeof(double)*3);
-	planes[0].vertex[0][0] = 50.0; planes[0].vertex[0][1] = 0.0; planes[0].vertex[0][2] = 50.0;
-	planes[0].vertex[1][0] = 50.0; planes[0].vertex[1][1] = 0.0; planes[0].vertex[1][2] = -50.0;
-	planes[0].vertex[2][0] = -50.0; planes[0].vertex[2][1] = 0.0; planes[0].vertex[2][2] = -50.0;
+	planes[0].vertex[0][0] = 50.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 50.0;
+	planes[0].vertex[1][0] = 50.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -50.0;
+	planes[0].vertex[2][0] = -50.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = -50.0;
 	planes[0].vertex[3][0] = -50.0; planes[0].vertex[3][1] = 0.0; planes[0].vertex[3][2] = 50.0;
 	planes[0].amb[0] = 0.2125; planes[0].amb[1] = 0.1275; planes[0].amb[2] = 0.054;
 	planes[0].dif[0] = 0.714; planes[0].dif[1] = 0.4284; planes[0].dif[2] = 0.18144;
 	planes[0].spe[0] = 0.393548; planes[0].spe[1] = 0.271906; planes[0].spe[2] = 0.166721;
 	planes[0].normal[0] = 0.0; planes[0].normal[1] = 1.0; planes[0].normal[2] = 0.0;
+	planes[0].D = calculD(planes[0].vertex[0], planes[0].normal);
+	cout<<planes[0].D<<endl;
 	planes[0].shi = 25.6;
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*1);
-	lights[0].center[0] = 0.0; lights[0].center[1] = 20.0; lights[0].center[2] = 0.0;
+	lights[0].center[0] = 30.0; lights[0].center[1] = 30.0; lights[0].center[2] = 30.0;
 	for(int i = 0; i < 3; i++) {
 		lights[0].amb[i] = 0.1;
 		lights[0].dif[i] = 1.0;
@@ -272,4 +294,8 @@ void setObject(string str) {
 	}
 	//test part for light	
 	//part for test.
+}
+
+double calculD(double* vertex, double* normal) {
+	return -1.0 * dotProduct(vertex, normal);
 }
