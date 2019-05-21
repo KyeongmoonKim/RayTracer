@@ -8,18 +8,23 @@
 #include"vect.hpp"
 #include"quat.hpp"
 #define PI 3.14159265
-#define H 250 //init 250.
-#define W 250 //init 250.
+#define H 500 //init 250.
+#define W 500 //init 250.
 
+/*
+	TOKNOW : for debugging, sphereNum is zero
+	TODO : 1. when coding reflection, dist parameter need and return value is vector. when dist is on the preset constant, return values is zero vector.
+	
+*/
 using namespace std;
-double refP[] = {100.0, 100.0, 100.0};
-double windowCenter[] = {30.0, 30.0, 30.0};
+double refP[] = {0.0, 100.0, 100.0};
+double windowCenter[] = {0.0, 30.0, 30.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 int color(double* o, double* v, double* rgb); //o : reference point, v : vector, return : rgb vector
 void setObject(string str); //str is file name
 double calculD(double* vertex, double* normal); //normal is normal vector of plane, vertex is on the plane.
-
+int parallel(double* v1, double* v2);
 	
 typedef struct lig {
 	double center[3];
@@ -48,13 +53,19 @@ typedef struct pol {
 	//materials after
 } Plane;
 double interSphere(double* o, double* u, Sphere* s); //return value is s, because u is normal vector, distance is s
-double interPlane(double* o, double* u, Plane* p);
+double interPlane(double* o, double* u, Plane* p); //the same as interSphere.
+int crossVect(double* pInter, double* u, double* p0, double* p1, double* normal); //return value : 0(no cross), 1(cross exists).
+//crossVect is function for inside-outside test. find crosspoints exists with edge between p0 and p1, and half-line u
 Light* lights;
 Sphere* spheres;
 Plane* planes;
 int lightNum;
 int sphereNum;
 int planeNum;
+
+//for debugging
+int currRow;
+int currCol;
 
 int main(int argc, char** argv) {
 	setObject("test");
@@ -65,13 +76,15 @@ int main(int argc, char** argv) {
 	}
 	for(int i = 0; i < H; i++) {
 		for(int j = 0; j < W; j++) {
+			currRow = i;
+			currCol = j;
 			double* v = pixelD(i, j);
 			double* rgb = (double *)malloc(sizeof(double)*3);
 			int ret = color(refP, v, rgb);
 			if(ret == -1) { //background color is black.
-				pixels[i][j][0] = 0.0;
-				pixels[i][j][1] = 0.0;
-				pixels[i][j][2] = 0.0;
+				pixels[i][j][0] = 1.0;
+				pixels[i][j][1] = 1.0;
+				pixels[i][j][2] = 1.0;
 			} else {
 				for(int k = 0; k < 3; k++) pixels[i][j][k] = rgb[k];
 			}
@@ -89,6 +102,10 @@ int main(int argc, char** argv) {
 			int r = pixels[i][j][0] * 255;
 			int g = pixels[i][j][1] * 255;
 			int b = pixels[i][j][2] * 255;
+			if(r<0 || g<0 || b<0) {
+				cout<<"row, col : " <<i <<", "<<j<<endl;
+				cout<<r<<" "<<g<<" "<<b<<endl;
+			}
 			img <<r<<" "<<g<<" "<<b<<endl;
 		}
 	}
@@ -129,19 +146,20 @@ int color(double* o, double* v, double* rgb) {
 			currIdx = i;
 		}
 	}
-	/*
+	
 	for(int i = 0; i < planeNum; i++) {
 		double tempS = interPlane(o, v, &(planes[i]));
+		//cout<<"tempS : " << tempS<<endl;
 		if(tempS < s) {
 			s = tempS;
 			currIdx = i;
 			type = 1;
 		}
 	}
-	*/
+	
 
 	if(s == 20000.0) return -1; //no intersection :  basecase 
-
+	//if(s < 1000) cout<<"s in the color : "<<s<<endl;
 
 	//intersection exists.
 	double pInter[3]; //intersected point.
@@ -170,6 +188,10 @@ int color(double* o, double* v, double* rgb) {
 	} //informaton allocation
 	double V[3];
 	for(int i = 0; i < 3; i++) V[i] = -1.0 * v[i]; //reverse vector of v.
+	if(dotProduct(N, V) < 0) {//when seeing the back-face.
+		cout<<"backface"<<endl;
+		for(int i = 0; i < 3; i++) N[i] = -N[i];
+	}
 	double R[lightNum][3];
 	double L[lightNum][3];
 	for(int i = 0; i < lightNum; i++) {
@@ -185,6 +207,7 @@ int color(double* o, double* v, double* rgb) {
 		}
 	} //L, R allocation.
 	//coloring start
+	//if(type==1) cout<<"type 1!"<<endl;
 	for(int i = 0; i < 3; i++) tempRgb[i] = 0.0;
 	for(int i = 0; i < lightNum; i++) {
 		if(dotProduct(N, L[i]) > 0.0) {//lights is in the direction.
@@ -195,21 +218,24 @@ int color(double* o, double* v, double* rgb) {
 					if(ttS < tS) tS = ttS;
 				}
 			}
-			/*
+			
 			for(int j = 0; j < planeNum; j++) {
 				if(j != currIdx || type==0) {
 					double ttS = interPlane(pInter, L[i], &(planes[i]));
-					if(ttS < ts) tS = ttS;
+					if(ttS < tS) tS = ttS;
 				}
 			}
-			*/
+			
 			if(tS != 20000.0) break; //light isn't seen.
 			//cout<<"light is seeing"<<endl;
 			for(int j = 0; j < 3; j++) {
 				tempRgb[j] += lights[i].amb[j]*amb[j]; //ambient caculation
 				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]); //diffuse caculation
-				tempRgb[j] += lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi);
+				if(dotProduct(R[i], V) > 0.0) {//after thinking
+					tempRgb[j] += lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi);
+				}
 			}
+			//if(type == 1) cout<<tempRgb[0]<<", "<<tempRgb[1]<<", "<<tempRgb[2]<<endl;
 		} //light hit the point. corloring.
 	}//rgb is summation. light 0 only has amb
 	
@@ -232,9 +258,9 @@ double interSphere(double* o, double* u, Sphere* s) {
 	double b = -2.0 * dotProduct(u, deltaP);
 	double c = length(deltaP, 3) * length(deltaP, 3) - (s->r) * (s->r);
 	double temp = b*b - 4.0 * c;
-	if(temp < 0.00000001) { // no intersection.
+	if(temp < 0.0001) { // no intersection.
 		return 20000.0;
-	} else if(temp > 0.00000001) { //2 point intersection
+	} else if(temp > 0.0001) { //2 point intersection
 		double s1 = (-1.0 * b - sqrt(temp)) / 2.0;
 		double s2 = (-1.0 * b + sqrt(temp)) / 2.0;
 		double ret = min(s1, s2);
@@ -245,15 +271,65 @@ double interSphere(double* o, double* u, Sphere* s) {
 		if(ret < 0.0) return 20000.0; //because spehre is behind of o.
 		else return ret;
 	}
-}//caculate intersect point Pi. Let, point Pi = o + s*u, return value is s. hyphothesis : o is out of sphere.
+}//caculate intersect point Pi. Let, point Pi = o + s*u, return value is s. hyphothesis : o is out of the sphere.
 
 double interPlane(double* o, double* u, Plane* p) {
 	double s = -1.0*(p->D + dotProduct(p->normal, o)) / dotProduct(p->normal, u);
-	if(s < 0.0) return 20000.0;
+	if(s < 0.0) {
+		return 20000.0; //no intersection.
+	}
+	//cout<<"s in the inter plane : "<< s<<endl;
 	double pInter[3];
 	for(int i = 0; i < 3; i++) pInter[i] = o[i] + s * u[i];
 	//inside-outside test.
-}
+	//cout<<"pInter : " <<pInter[0]<<", "<<pInter[1]<<", "<<pInter[2]<<endl;
+	int crossNum = 0;
+	double uPlane[3];
+	for(int i = 0; i < 3; i++) {
+		uPlane[i] = (p->vertex[1][i] + p->vertex[0][i])/2;
+		uPlane[i] -= pInter[i];
+	}//uPlane : pInter -> mid(vertex[0], vertex[1]) vector.
+	double d = length(uPlane, 3);
+	for(int i = 0; i < 3; i++) uPlane[i] = uPlane[i]/d;
+	for(int i = 0; i < p->n; i++) {//find existence of cross point.
+		//cout<<"i before crossVect in interPlane : "<<i<<endl; 
+		crossNum += crossVect(pInter, uPlane, p->vertex[i], p->vertex[(i+1)%(p->n)], p->normal);
+	}
+	if(crossNum%2==0) {//even is outside. so intersection doesn't exist.
+		return 20000.0;
+	} else {//odds is inside, so intersection exists.
+		return s;
+	}
+}//calculate intersection points Pi, Let, Pi = o + s*u, return value is s. hypothesis : o is out of the plane.
+
+int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal) { //pInter and p0, p1 is in the same plane.
+	double v[3];
+	for(int i = 0; i < 3; i++) v[i] = p1[i] - p0[i];
+	double d = length(v, 3);
+	for(int i = 0; i < 3; i++) v[i] = v[i]/d;
+	double* N = crossProduct(v, normal); //new normal vector, and 
+	double D = calculD(p0, N);
+	if(parallel(u, v) == 1) {//parallel case
+		return 0.0;
+	} 
+	//not parallel
+	double s = -1.0*(D + dotProduct(N, pInter)) / dotProduct(N, u);
+	free(N);
+	if(s < 0.0) return 0.0; //no intersection. because cross point is behind the pInter.
+	double pNew[3];
+	for(int i = 0; i < 3; i++) pNew[i] = pInter[i] + u[i] * s; //cross Point.
+	double vNew[3];
+	for(int i = 0; i < 3; i++) vNew[i] = pNew[i] - p0[i];
+	if(dotProduct(vNew, v) < 0.0) return 0.0; //cross point is behind p0.
+	double dNew = length(vNew, 3);
+	if(dNew <= d) return 1;
+	else return 0;
+}//find cross point exists
+//because pInter, p0, p1 is on the same plane, vector u and v has 2 case. parallel or crossing.
+//so N = crossProduct(v, normal vector of the same plane). and, when get intersection point with plane that has normal vector N
+//and pInter+s*u, then the intersection point is on the vector v. because v is intersection line of N plane and normal plane.
+//finally, if length of p0 -> pNew is bigger than 0 and shorter than length(v), it has crosspoint.
+
 void setObject(string str) {
 	sphereNum = 1;
 	planeNum = 1;
@@ -273,20 +349,20 @@ void setObject(string str) {
 	planes[0].vertex = (double **)malloc(sizeof(double*)*planes[0].n);
 	for(int i = 0; i < planes[0].n; i++) 
 		planes[0].vertex[i] = (double *)malloc(sizeof(double)*3);
-	planes[0].vertex[0][0] = 50.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 50.0;
-	planes[0].vertex[1][0] = 50.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -50.0;
-	planes[0].vertex[2][0] = -50.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = -50.0;
-	planes[0].vertex[3][0] = -50.0; planes[0].vertex[3][1] = 0.0; planes[0].vertex[3][2] = 50.0;
+	planes[0].vertex[0][0] = 200.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 200.0;
+	planes[0].vertex[1][0] = 200.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -200.0;
+	planes[0].vertex[2][0] = -200.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = -200.0;
+	planes[0].vertex[3][0] = -200.0; planes[0].vertex[3][1] = -30.0; planes[0].vertex[3][2] = 200.0;
 	planes[0].amb[0] = 0.2125; planes[0].amb[1] = 0.1275; planes[0].amb[2] = 0.054;
 	planes[0].dif[0] = 0.714; planes[0].dif[1] = 0.4284; planes[0].dif[2] = 0.18144;
 	planes[0].spe[0] = 0.393548; planes[0].spe[1] = 0.271906; planes[0].spe[2] = 0.166721;
 	planes[0].normal[0] = 0.0; planes[0].normal[1] = 1.0; planes[0].normal[2] = 0.0;
 	planes[0].D = calculD(planes[0].vertex[0], planes[0].normal);
-	cout<<planes[0].D<<endl;
+	//cout<<planes[0].D<<endl;
 	planes[0].shi = 25.6;
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*1);
-	lights[0].center[0] = 30.0; lights[0].center[1] = 30.0; lights[0].center[2] = 30.0;
+	lights[0].center[0] = 100.0; lights[0].center[1] = 100.0; lights[0].center[2] = 100.0;
 	for(int i = 0; i < 3; i++) {
 		lights[0].amb[i] = 0.1;
 		lights[0].dif[i] = 1.0;
@@ -298,4 +374,15 @@ void setObject(string str) {
 
 double calculD(double* vertex, double* normal) {
 	return -1.0 * dotProduct(vertex, normal);
+}
+
+int parallel(double* v1, double* v2) {
+	double d1 = length(v1, 3);
+	double d2 = length(v2, 3);
+	for(int i = 0; i < 3; i++) {
+		double temp = v1[i]/d1 - v2[i]/d2;
+		if(temp < 0.0001 && temp > -0.0001) continue;
+		else return 0;
+	}
+	return 1;
 }
