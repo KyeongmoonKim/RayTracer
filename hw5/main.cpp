@@ -17,8 +17,8 @@
 	
 */
 using namespace std;
-double refP[] = {15.0, 0.0, 0.0};
-double windowCenter[] = {25.0, 0.0, 0.0};
+double refP[] = {0.0, 40.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {0.0, 10.0, 50.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 }
 
 double* pixelD(int row, int col) {
-	double dy = (double)row - (double)H/2;
+	/*double dy = (double)row - (double)H/2;
 	double dx = (double)col - (double)W/2;
 	double* ret = (double *)malloc(sizeof(double)*3);
 	double zAxis[3];
@@ -135,11 +135,30 @@ double* pixelD(int row, int col) {
 	free(yAxis);
 	d = length(ret, 3);
 	for(int i = 0; i < 3; i++) ret[i] = ret[i]/d;
+	return ret;*/
+	double* ret = (double*)malloc(sizeof(double)*3);
+	double zAxis[3];
+	double viewUp[] = {0.0, 1.0, 0.0};
+	for(int i = 0; i < 3; i++) {
+		ret[i] = windowCenter[i] - refP[i];
+		zAxis[i] = refP[i] - windowCenter[i];
+	}
+	double d = length(zAxis, 3);
+	for(int i = 0; i < 3; i++) zAxis[i] = zAxis[i]/d;
+	double* xAxis = crossProduct(viewUp, zAxis);
+	double* yAxis = crossProduct(zAxis, xAxis);
+	double dy = (double)H/2 - row;
+	double dx = (double)col - W/2;
+	for(int i = 0; i < 3 ; i++) ret[i] += xAxis[i]*dx + yAxis[i] * dy;
+	d = length(ret, 3);
+	for(int i = 0; i < 3; i++) ret[i] = ret[i]/d;
+	free(xAxis);
+	free(yAxis);
 	return ret;
 } //normal vector for reference point to pixel.
 
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx) {
-	if(dist > 1000.0) return -1.0; //so far away.
+	if(dist > 500.0) return -1.0; //so far away.
 	double s = 20000.0;
 	int currIdx;
 	int type = 0;//0 is sphere, 1 is polygon.
@@ -188,8 +207,8 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 	} else {
 		amb = planes[currIdx].amb;
 		dif = planes[currIdx].dif;
-		spe = spheres[currIdx].spe;
-		shi = spheres[currIdx].shi;
+		spe = planes[currIdx].spe;
+		shi = planes[currIdx].shi;
 		for(int i = 0; i < 3; i++) N[i] = planes[currIdx].normal[i];
 	} //informaton allocation
 	double V[3];
@@ -222,14 +241,14 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 			for(int j = 0; j < sphereNum; j++) {
 				if(j != currIdx || type==1) {
 					double ttS = interSphere(pInter, L[i], &(spheres[j]));
-					if(ttS < tS) tS = ttS;
+					if(ttS < tS && ttS < d[i]) tS = ttS;
 				}
 			}
 			
 			for(int j = 0; j < planeNum; j++) {
 				if(j != currIdx || type==0) {
 					double ttS = interPlane(pInter, L[i], &(planes[j]));
-					if(ttS < tS) tS = ttS;
+					if(ttS < tS && ttS < d[i]) tS = ttS;
 				}
 			}
 			
@@ -245,7 +264,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 					tempRgb[j] += temp;
 				}
 			}
-			//if(type == 1) cout<<tempRgb[0]<<", "<<tempRgb[1]<<", "<<tempRgb[2]<<endl;
+		
 		} //light hit the point. corloring.
 	}//rgb is summation. light 0 only has amb
 	
@@ -258,7 +277,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 		for(int i = 0; i < 3; i++) {
 			double temp = reflS/l;
 			if(temp < 1.0) temp = 1.0;
-			tempRgb[i] += reflRgb[i] * dif[i] * dotProduct(N, V) / temp;
+			//tempRgb[i] += reflRgb[i] * dif[i] * dotProduct(N, V) / temp;
 			tempRgb[i] += reflRgb[i] * spe[i] / temp;
 		}
 	}
@@ -273,9 +292,9 @@ double interSphere(double* o, double* u, Sphere* s) {
 	double b = -2.0 * dotProduct(u, deltaP);
 	double c = length(deltaP, 3) * length(deltaP, 3) - (s->r) * (s->r);
 	double temp = b*b - 4.0 * c;
-	if(temp < 0.001) { // no intersection.
+	if(temp < 0.00001) { // no intersection.
 		return 20000.0;
-	} else if(temp > 0.001) { //2 point intersection
+	} else if(temp > 0.00001) { //2 point intersection
 		double s1 = (-1.0 * b - sqrt(temp)) / 2.0;
 		double s2 = (-1.0 * b + sqrt(temp)) / 2.0;
 		double ret = min(s1, s2);
@@ -347,9 +366,9 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 
 void setObject(string str) {
 	sphereNum = 2;
-	planeNum = 1;
-	lightNum = 1;
-	spheres = (Sphere*)malloc(sizeof(Sphere)*sphereNum);
+	planeNum = 2;
+	lightNum = 2;
+	spheres = (Sphere*)malloc(sizeof(Sphere)*10);//replace 10 to sphereNum
 	spheres[0].r = 30.0;
 	spheres[1].r = 30.0;
 	spheres[0].center[0] = 50.0;
@@ -362,30 +381,49 @@ void setObject(string str) {
 	spheres[1].amb[0] = 0.0; spheres[1].amb[1] = 0.0; spheres[1].amb[2] = 0.0;
 	spheres[0].dif[0] = 0.1; spheres[0].dif[1] = 0.35; spheres[0].dif[2] = 0.1;
 	spheres[1].dif[0] = 0.35; spheres[1].dif[1] = 0.1; spheres[1].dif[2] = 0.1;
-	spheres[0].spe[0] = 0.45; spheres[0].spe[1] = 0.55; spheres[0].dif[2] = 0.45;
-	spheres[1].spe[0] = 0.55; spheres[1].spe[1] = 0.45; spheres[1].dif[2] = 0.45;
-	spheres[0].shi = 41.0;
-	spheres[1].shi = 41.0;
+	spheres[0].spe[0] = 0.3; spheres[0].spe[1] = 0.3; spheres[0].spe[2] = 0.3;
+	spheres[1].spe[0] = 0.8; spheres[1].spe[1] = 0.8; spheres[1].spe[2] = 0.8;
+	spheres[0].shi = 20.0;
+	spheres[1].shi = 20.0;
 	//test part for sphere
-	planes = (Plane*)malloc(sizeof(Plane)*planeNum);
+	planes = (Plane*)malloc(sizeof(Plane)*10);//replace 10 to planeNum
 	planes[0].n = 4;
+	planes[1].n = 4;
 	planes[0].vertex = (double **)malloc(sizeof(double*)*planes[0].n);
-	for(int i = 0; i < planes[0].n; i++) 
+	planes[1].vertex = (double **)malloc(sizeof(double*)*planes[1].n);
+	for(int i = 0; i < planes[0].n; i++) {
 		planes[0].vertex[i] = (double *)malloc(sizeof(double)*3);
+		planes[1].vertex[i] = (double *)malloc(sizeof(double)*3);
+	}
 	planes[0].vertex[0][0] = 200.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 200.0;
 	planes[0].vertex[1][0] = 200.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -200.0;
 	planes[0].vertex[2][0] = -200.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = -200.0;
 	planes[0].vertex[3][0] = -200.0; planes[0].vertex[3][1] = -30.0; planes[0].vertex[3][2] = 200.0;
+	
+	planes[1].vertex[0][0] = 200.0; planes[1].vertex[0][1] = -30.0; planes[1].vertex[0][2] = 200.0;
+	planes[1].vertex[1][0] = 200.0; planes[1].vertex[1][1] = 370.0; planes[1].vertex[1][2] = 200.0;
+	planes[1].vertex[2][0] = 200.0; planes[1].vertex[2][1] = 370.0; planes[1].vertex[2][2] = -200.0;
+	planes[1].vertex[3][0] = 200.0; planes[1].vertex[3][1] = -30.0; planes[1].vertex[3][2] = -200.0;
+	
 	planes[0].amb[0] = 0.2125; planes[0].amb[1] = 0.1275; planes[0].amb[2] = 0.054;
 	planes[0].dif[0] = 0.714; planes[0].dif[1] = 0.4284; planes[0].dif[2] = 0.18144;
-	planes[0].spe[0] = 0.393548; planes[0].spe[1] = 0.271906; planes[0].spe[2] = 0.166721;
+	planes[0].spe[0] = 0.3; planes[0].spe[1] = 0.3; planes[0].spe[2] = 0.3;
+	
+	planes[1].amb[0] = 0.0; planes[1].amb[1] = 0.0; planes[1].amb[2] = 0.0;
+	planes[1].dif[0] = 0.3; planes[1].dif[1] = 0.7; planes[1].dif[2] = 0.2;
+	planes[1].spe[0] = 0.5; planes[1].spe[2] = 0.5; planes[1].spe[2] = 0.5;
+
 	planes[0].normal[0] = 0.0; planes[0].normal[1] = 1.0; planes[0].normal[2] = 0.0;
+	planes[1].normal[0] = -1.0; planes[1].normal[1] = 0.0; planes[1].normal[2] = 0.0;
+
 	planes[0].D = calculD(planes[0].vertex[0], planes[0].normal);
+	planes[1].D = calculD(planes[1].vertex[1], planes[1].normal);
 	//cout<<planes[0].D<<endl;
-	planes[0].shi = 25.6;
+	planes[0].shi = 80.0;
+	planes[1].shi = 20.0;
 	//test part for polygon
-	lights = (Light*)malloc(sizeof(Light)*lightNum);
-	lights[0].center[0] = 0.0; lights[0].center[1] = 0.0; lights[0].center[2] = 100.0;
+	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
+	lights[0].center[0] = 0.0; lights[0].center[1] = 100.0; lights[0].center[2] = 0.0;
 	//lights[1].center[0] = 0.0; lights[1].center[1] = 0.0; lights[1].center[2] = 100.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
