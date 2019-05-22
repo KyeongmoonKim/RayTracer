@@ -10,7 +10,7 @@
 #define PI 3.14159265
 #define H 500 //init 250.
 #define W 500 //init 250.
-
+#define l 100 // used when calculating light decay.
 /*
 	TOKNOW : for debugging, sphereNum is zero
 	TODO : 1. when coding reflection, dist parameter need and return value is vector. when dist is on the preset constant, return values is zero vector.
@@ -21,7 +21,7 @@ double refP[] = {0.0, 100.0, 100.0};
 double windowCenter[] = {0.0, 30.0, 30.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
-int color(double* o, double* v, double* rgb); //o : reference point, v : vector, return : rgb vector
+double color(double* o, double* v, double* rgb, double dist); //o : reference point, v : vector, return : rgb vector
 void setObject(string str); //str is file name
 double calculD(double* vertex, double* normal); //normal is normal vector of plane, vertex is on the plane.
 int parallel(double* v1, double* v2);
@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
 			currCol = j;
 			double* v = pixelD(i, j);
 			double* rgb = (double *)malloc(sizeof(double)*3);
-			int ret = color(refP, v, rgb);
-			if(ret == -1) { //background color is black.
+			double ret = color(refP, v, rgb, 0.0);
+			if(ret < 0.0) { //background color is black.
 				pixels[i][j][0] = 1.0;
 				pixels[i][j][1] = 1.0;
 				pixels[i][j][2] = 1.0;
@@ -135,7 +135,8 @@ double* pixelD(int row, int col) {
 	return ret;
 } //normal vector for reference point to pixel.
 
-int color(double* o, double* v, double* rgb) {
+double color(double* o, double* v, double* rgb, double dist) {
+	if(dist > 1000.0) return -1.0; //so far away.
 	double s = 20000.0;
 	int currIdx;
 	int type = 0;//0 is sphere, 1 is polygon.
@@ -158,7 +159,7 @@ int color(double* o, double* v, double* rgb) {
 	}
 	
 
-	if(s == 20000.0) return -1; //no intersection :  basecase 
+	if(s == 20000.0) return -1.0; //no intersection :  basecase 
 	//if(s < 1000) cout<<"s in the color : "<<s<<endl;
 
 	//intersection exists.
@@ -194,13 +195,14 @@ int color(double* o, double* v, double* rgb) {
 	}
 	double R[lightNum][3];
 	double L[lightNum][3];
+	double d[lightNum];
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
 			L[i][j] = lights[i].center[j] - pInter[j];
 		} //intersecting point to light source vector
-		double d = length(L[i], 3);
+		d[i] = length(L[i], 3);
 		for(int j = 0; j < 3; j++) {
-			L[i][j] = L[i][j] / d;
+			L[i][j] = L[i][j] / d[i];
 		}//normalization.
 		for(int j = 0; j < 3; j++) {
 			R[i][j] = 2.0 * dotProduct(N, L[i]) * N[j] - L[i][j];
@@ -214,25 +216,25 @@ int color(double* o, double* v, double* rgb) {
 			double tS = 20000.0; //base
 			for(int j = 0; j < sphereNum; j++) {
 				if(j != currIdx || type==1) {
-					double ttS = interSphere(pInter, L[i], &(spheres[i]));
+					double ttS = interSphere(pInter, L[i], &(spheres[j]));
 					if(ttS < tS) tS = ttS;
 				}
 			}
 			
 			for(int j = 0; j < planeNum; j++) {
 				if(j != currIdx || type==0) {
-					double ttS = interPlane(pInter, L[i], &(planes[i]));
+					double ttS = interPlane(pInter, L[i], &(planes[j]));
 					if(ttS < tS) tS = ttS;
 				}
 			}
 			
-			if(tS != 20000.0) break; //light isn't seen.
+			if(tS != 20000.0) continue; //light isn't seen.
 			//cout<<"light is seeing"<<endl;
 			for(int j = 0; j < 3; j++) {
 				tempRgb[j] += lights[i].amb[j]*amb[j]; //ambient caculation
-				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]); //diffuse caculation
+				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i])*l/d[i]; //diffuse caculation
 				if(dotProduct(R[i], V) > 0.0) {//after thinking
-					tempRgb[j] += lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi);
+					tempRgb[j] += lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi)*l/d[i];
 				}
 			}
 			//if(type == 1) cout<<tempRgb[0]<<", "<<tempRgb[1]<<", "<<tempRgb[2]<<endl;
@@ -249,7 +251,7 @@ int color(double* o, double* v, double* rgb) {
 	*/
 	for(int i = 0; i < 3; i++) rgb[i] = tempRgb[i];
 	
-	return 1;
+	return s;
 }
 
 double interSphere(double* o, double* u, Sphere* s) {
@@ -331,20 +333,28 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 //finally, if length of p0 -> pNew is bigger than 0 and shorter than length(v), it has crosspoint.
 
 void setObject(string str) {
-	sphereNum = 1;
+	sphereNum = 2;
 	planeNum = 1;
-	lightNum = 1;
-	spheres = (Sphere*)malloc(sizeof(Sphere)*1);
+	lightNum = 2;
+	spheres = (Sphere*)malloc(sizeof(Sphere)*sphereNum);
 	spheres[0].r = 30.0;
-	spheres[0].center[0] = 0.0;
+	spheres[1].r = 30.0;
+	spheres[0].center[0] = 50.0;
+	spheres[1].center[0] = -50.0;
 	spheres[0].center[1] = 0.0;
+	spheres[1].center[1] = 0.0;
 	spheres[0].center[2] = 0.0;
+	spheres[1].center[2] = 0.0;
 	spheres[0].amb[0] = 0.0; spheres[0].amb[1] = 0.0; spheres[0].amb[2] = 0.0;
+	spheres[1].amb[0] = 0.0; spheres[1].amb[1] = 0.0; spheres[1].amb[2] = 0.0;
 	spheres[0].dif[0] = 0.1; spheres[0].dif[1] = 0.35; spheres[0].dif[2] = 0.1;
+	spheres[1].dif[0] = 0.35; spheres[1].dif[1] = 0.1; spheres[1].dif[2] = 0.1;
 	spheres[0].spe[0] = 0.45; spheres[0].spe[1] = 0.55; spheres[0].dif[2] = 0.45;
+	spheres[1].spe[0] = 0.55; spheres[1].spe[1] = 0.45; spheres[1].dif[2] = 0.45;
 	spheres[0].shi = 41.0;
+	spheres[1].shi = 41.0;
 	//test part for sphere
-	planes = (Plane*)malloc(sizeof(Plane)*1);
+	planes = (Plane*)malloc(sizeof(Plane)*planeNum);
 	planes[0].n = 4;
 	planes[0].vertex = (double **)malloc(sizeof(double*)*planes[0].n);
 	for(int i = 0; i < planes[0].n; i++) 
@@ -361,12 +371,15 @@ void setObject(string str) {
 	//cout<<planes[0].D<<endl;
 	planes[0].shi = 25.6;
 	//test part for polygon
-	lights = (Light*)malloc(sizeof(Light)*1);
-	lights[0].center[0] = 100.0; lights[0].center[1] = 100.0; lights[0].center[2] = 100.0;
-	for(int i = 0; i < 3; i++) {
-		lights[0].amb[i] = 0.1;
-		lights[0].dif[i] = 1.0;
-		lights[0].spe[i] = 0.5;
+	lights = (Light*)malloc(sizeof(Light)*lightNum);
+	lights[0].center[0] = 0.0; lights[0].center[1] = 100.0; lights[0].center[2] = -100.0;
+	lights[1].center[0] = 0.0; lights[1].center[1] = 100.0; lights[1].center[2] = 0.0;
+	for(int i = 0; i < lightNum; i++) {
+		for(int j = 0; j < 3; j++) {
+			lights[i].amb[j] = 0.0;
+			lights[i].dif[j] = 1.0;
+			lights[i].spe[j] = 1.0;
+		}
 	}
 	//test part for light	
 	//part for test.
