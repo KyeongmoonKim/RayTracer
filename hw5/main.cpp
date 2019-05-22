@@ -10,18 +10,18 @@
 #define PI 3.14159265
 #define H 500 //init 250.
 #define W 500 //init 250.
-#define l 100 // used when calculating light decay.
+#define l 50 // used when calculating light decay.
 /*
 	TOKNOW : for debugging, sphereNum is zero
 	TODO : 1. when coding reflection, dist parameter need and return value is vector. when dist is on the preset constant, return values is zero vector.
 	
 */
 using namespace std;
-double refP[] = {0.0, 100.0, 100.0};
-double windowCenter[] = {0.0, 30.0, 30.0};
+double refP[] = {15.0, 0.0, 0.0};
+double windowCenter[] = {25.0, 0.0, 0.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
-double color(double* o, double* v, double* rgb, double dist); //o : reference point, v : vector, return : rgb vector
+double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
 void setObject(string str); //str is file name
 double calculD(double* vertex, double* normal); //normal is normal vector of plane, vertex is on the plane.
 int parallel(double* v1, double* v2);
@@ -80,13 +80,13 @@ int main(int argc, char** argv) {
 			currCol = j;
 			double* v = pixelD(i, j);
 			double* rgb = (double *)malloc(sizeof(double)*3);
-			double ret = color(refP, v, rgb, 0.0);
+			double ret = color(refP, v, rgb, 0.0, -1, -1);
 			if(ret < 0.0) { //background color is black.
 				pixels[i][j][0] = 1.0;
 				pixels[i][j][1] = 1.0;
 				pixels[i][j][2] = 1.0;
 			} else {
-				for(int k = 0; k < 3; k++) pixels[i][j][k] = rgb[k];
+				for(int k = 0; k < 3; k++) pixels[i][j][k] = rgb[k];// * l / ret;
 			}
 			free(v);
 			free(rgb);
@@ -99,14 +99,17 @@ int main(int argc, char** argv) {
 	img << "255" << endl;
 	for(int i = 0; i < H; i++) {
 		for(int j = 0; j < W; j++) {
-			int r = pixels[i][j][0] * 255;
-			int g = pixels[i][j][1] * 255;
-			int b = pixels[i][j][2] * 255;
+			int r = (int)(pixels[i][j][0] * 255.0);
+			int g = (int)(pixels[i][j][1] * 255.0);
+			int b = (int)(pixels[i][j][2] * 255.0);
 			if(r<0 || g<0 || b<0) {
 				cout<<"row, col : " <<i <<", "<<j<<endl;
+				cout<<pixels[i][j][0]<<", "<<pixels[i][j][1]<<", "<<pixels[i][j][2]<<endl;
 				cout<<r<<" "<<g<<" "<<b<<endl;
+				img<<"0 0 0"<<endl;
+			} else {
+				img <<r<<" "<<g<<" "<<b<<endl;
 			}
-			img <<r<<" "<<g<<" "<<b<<endl;
 		}
 	}
 	return 0;
@@ -135,12 +138,13 @@ double* pixelD(int row, int col) {
 	return ret;
 } //normal vector for reference point to pixel.
 
-double color(double* o, double* v, double* rgb, double dist) {
+double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx) {
 	if(dist > 1000.0) return -1.0; //so far away.
 	double s = 20000.0;
 	int currIdx;
 	int type = 0;//0 is sphere, 1 is polygon.
 	for(int i = 0; i < sphereNum; i++) {
+		if(bType==0 && bIdx == i) continue; //pass the reflexed surface
 		double tempS = interSphere(o, v, &(spheres[i]));
 		if(tempS < s) {
 			s = tempS; 
@@ -149,6 +153,7 @@ double color(double* o, double* v, double* rgb, double dist) {
 	}
 	
 	for(int i = 0; i < planeNum; i++) {
+		if(bType==1 && bIdx == i) continue; //pass the reflexed surface
 		double tempS = interPlane(o, v, &(planes[i]));
 		//cout<<"tempS : " << tempS<<endl;
 		if(tempS < s) {
@@ -164,7 +169,7 @@ double color(double* o, double* v, double* rgb, double dist) {
 
 	//intersection exists.
 	double pInter[3]; //intersected point.
-	double shadowRay[lightNum][3]; //lightsource to intersecting point vector.
+
 	for(int i = 0; i < 3; i++) pInter[i] = o[i] + s * v[i];
 
 	//color by direct light source.
@@ -231,26 +236,34 @@ double color(double* o, double* v, double* rgb, double dist) {
 			if(tS != 20000.0) continue; //light isn't seen.
 			//cout<<"light is seeing"<<endl;
 			for(int j = 0; j < 3; j++) {
+				double wow = d[i]/l;
+				if(wow < 1.0)  wow = 1.0;
 				tempRgb[j] += lights[i].amb[j]*amb[j]; //ambient caculation
-				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i])*l/d[i]; //diffuse caculation
+				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]) / wow;//diffuse caculation
 				if(dotProduct(R[i], V) > 0.0) {//after thinking
-					tempRgb[j] += lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi)*l/d[i];
+					double temp = lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi) / wow;
+					tempRgb[j] += temp;
 				}
 			}
 			//if(type == 1) cout<<tempRgb[0]<<", "<<tempRgb[1]<<", "<<tempRgb[2]<<endl;
 		} //light hit the point. corloring.
 	}//rgb is summation. light 0 only has amb
 	
-	/*
-		part for reflection. 
-	*/
-	/* Vnew is rotated by rotAxis = crossProduct(V, N).
-		double* rgbNew = (double *)malloc(sizeof(double)*3);
-		int reflection = color(pInter, vNew, rgbNew);
-		//coloring by reflection. and in this case, L = Vnew. R = V.
-	*/
+	//below part is reflection.
+	double* reflRgb = (double*)malloc(sizeof(double)*3);
+	double vNew[3];
+	for(int i = 0; i < 3; i++) vNew[i] = 2.0 * dotProduct(N, V) * N[i] - V[i]; //reflected v vector.
+	double reflS = color(pInter, vNew, reflRgb, dist+s, type, currIdx); //reflRgb is light from vNew.
+	if(reflS > 0.0) { //reflection occured.
+		for(int i = 0; i < 3; i++) {
+			double temp = reflS/l;
+			if(temp < 1.0) temp = 1.0;
+			tempRgb[i] += reflRgb[i] * dif[i] * dotProduct(N, V) / temp;
+			tempRgb[i] += reflRgb[i] * spe[i] / temp;
+		}
+	}
+	free(reflRgb);
 	for(int i = 0; i < 3; i++) rgb[i] = tempRgb[i];
-	
 	return s;
 }
 
@@ -260,9 +273,9 @@ double interSphere(double* o, double* u, Sphere* s) {
 	double b = -2.0 * dotProduct(u, deltaP);
 	double c = length(deltaP, 3) * length(deltaP, 3) - (s->r) * (s->r);
 	double temp = b*b - 4.0 * c;
-	if(temp < 0.0001) { // no intersection.
+	if(temp < 0.001) { // no intersection.
 		return 20000.0;
-	} else if(temp > 0.0001) { //2 point intersection
+	} else if(temp > 0.001) { //2 point intersection
 		double s1 = (-1.0 * b - sqrt(temp)) / 2.0;
 		double s2 = (-1.0 * b + sqrt(temp)) / 2.0;
 		double ret = min(s1, s2);
@@ -335,7 +348,7 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 void setObject(string str) {
 	sphereNum = 2;
 	planeNum = 1;
-	lightNum = 2;
+	lightNum = 1;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*sphereNum);
 	spheres[0].r = 30.0;
 	spheres[1].r = 30.0;
@@ -372,8 +385,8 @@ void setObject(string str) {
 	planes[0].shi = 25.6;
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*lightNum);
-	lights[0].center[0] = 0.0; lights[0].center[1] = 100.0; lights[0].center[2] = -100.0;
-	lights[1].center[0] = 0.0; lights[1].center[1] = 100.0; lights[1].center[2] = 0.0;
+	lights[0].center[0] = 0.0; lights[0].center[1] = 0.0; lights[0].center[2] = 100.0;
+	//lights[1].center[0] = 0.0; lights[1].center[1] = 0.0; lights[1].center[2] = 100.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
 			lights[i].amb[j] = 0.0;
