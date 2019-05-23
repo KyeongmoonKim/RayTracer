@@ -17,8 +17,8 @@
 	
 */
 using namespace std;
-double refP[] = {0.0, 40.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
-double windowCenter[] = {0.0, 10.0, 50.0};
+double refP[] = {0.0, 200.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {0.0, 30.0, 30.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -365,65 +365,86 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 //finally, if length of p0 -> pNew is bigger than 0 and shorter than length(v), it has crosspoint.
 
 void setObject(string str) {
-	sphereNum = 2;
-	planeNum = 2;
+	sphereNum = 1;
+	planeNum = 3;
 	lightNum = 2;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*10);//replace 10 to sphereNum
 	spheres[0].r = 30.0;
 	spheres[1].r = 30.0;
-	spheres[0].center[0] = 50.0;
+	spheres[0].center[0] = 0.0;
 	spheres[1].center[0] = -50.0;
 	spheres[0].center[1] = 0.0;
 	spheres[1].center[1] = 0.0;
-	spheres[0].center[2] = 0.0;
+	spheres[0].center[2] = 10.0;
 	spheres[1].center[2] = 0.0;
 	spheres[0].amb[0] = 0.0; spheres[0].amb[1] = 0.0; spheres[0].amb[2] = 0.0;
 	spheres[1].amb[0] = 0.0; spheres[1].amb[1] = 0.0; spheres[1].amb[2] = 0.0;
 	spheres[0].dif[0] = 0.1; spheres[0].dif[1] = 0.35; spheres[0].dif[2] = 0.1;
 	spheres[1].dif[0] = 0.35; spheres[1].dif[1] = 0.1; spheres[1].dif[2] = 0.1;
 	spheres[0].spe[0] = 0.3; spheres[0].spe[1] = 0.3; spheres[0].spe[2] = 0.3;
-	spheres[1].spe[0] = 0.8; spheres[1].spe[1] = 0.8; spheres[1].spe[2] = 0.8;
+	spheres[1].spe[0] = 1.0; spheres[1].spe[1] = 1.0; spheres[1].spe[2] = 1.0;
 	spheres[0].shi = 20.0;
 	spheres[1].shi = 20.0;
 	//test part for sphere
 	planes = (Plane*)malloc(sizeof(Plane)*10);//replace 10 to planeNum
 	planes[0].n = 4;
 	planes[1].n = 4;
+	planes[2].n = 4;
 	planes[0].vertex = (double **)malloc(sizeof(double*)*planes[0].n);
 	planes[1].vertex = (double **)malloc(sizeof(double*)*planes[1].n);
+	planes[2].vertex = (double **)malloc(sizeof(double*)*planes[2].n);
 	for(int i = 0; i < planes[0].n; i++) {
 		planes[0].vertex[i] = (double *)malloc(sizeof(double)*3);
 		planes[1].vertex[i] = (double *)malloc(sizeof(double)*3);
+		planes[2].vertex[i] = (double *)malloc(sizeof(double)*3);
 	}
 	planes[0].vertex[0][0] = 200.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 200.0;
 	planes[0].vertex[1][0] = 200.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -200.0;
 	planes[0].vertex[2][0] = -200.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = -200.0;
 	planes[0].vertex[3][0] = -200.0; planes[0].vertex[3][1] = -30.0; planes[0].vertex[3][2] = 200.0;
 	
-	planes[1].vertex[0][0] = 200.0; planes[1].vertex[0][1] = -30.0; planes[1].vertex[0][2] = 200.0;
-	planes[1].vertex[1][0] = 200.0; planes[1].vertex[1][1] = 370.0; planes[1].vertex[1][2] = 200.0;
-	planes[1].vertex[2][0] = 200.0; planes[1].vertex[2][1] = 370.0; planes[1].vertex[2][2] = -200.0;
-	planes[1].vertex[3][0] = 200.0; planes[1].vertex[3][1] = -30.0; planes[1].vertex[3][2] = -200.0;
+	planes[1].vertex[0][0] = 90.0; planes[1].vertex[0][1] = -30.0; planes[1].vertex[0][2] = 20.0;
+	planes[1].vertex[1][0] = 90.0; planes[1].vertex[1][1] = 100.0; planes[1].vertex[1][2] = 20.0;
+	planes[1].vertex[2][0] = 0.0; planes[1].vertex[2][1] = 100.0; planes[1].vertex[2][2] = -70.0;
+	planes[1].vertex[3][0] = 0.0; planes[1].vertex[3][1] = -30.0; planes[1].vertex[3][2] = -70.0;
 	
+	planes[2].vertex[0][0] = -90.0; planes[2].vertex[0][1] = 100.0; planes[2].vertex[0][2] = 20.0;
+	planes[2].vertex[1][0] = -90.0; planes[2].vertex[1][1] = -30.0; planes[2].vertex[1][2] = 20.0;
+	planes[2].vertex[2][0] = 0.0; planes[2].vertex[2][1] = -30.0; planes[2].vertex[2][2] = -70.0;
+	planes[2].vertex[3][0] = 0.0; planes[2].vertex[3][1] = 100.0; planes[2].vertex[3][2] = -70.0;
+
 	planes[0].amb[0] = 0.2125; planes[0].amb[1] = 0.1275; planes[0].amb[2] = 0.054;
 	planes[0].dif[0] = 0.714; planes[0].dif[1] = 0.4284; planes[0].dif[2] = 0.18144;
 	planes[0].spe[0] = 0.3; planes[0].spe[1] = 0.3; planes[0].spe[2] = 0.3;
 	
-	planes[1].amb[0] = 0.0; planes[1].amb[1] = 0.0; planes[1].amb[2] = 0.0;
-	planes[1].dif[0] = 0.3; planes[1].dif[1] = 0.7; planes[1].dif[2] = 0.2;
-	planes[1].spe[0] = 0.5; planes[1].spe[2] = 0.5; planes[1].spe[2] = 0.5;
+	planes[1].amb[0] = 0.0; planes[1].amb[1] = 0.0; planes[1].amb[2] = 0.0;//mirror
+	planes[1].dif[0] = 0.0; planes[1].dif[1] = 0.0; planes[1].dif[2] = 0.0;//mirror
+	planes[1].spe[0] = 1.0; planes[1].spe[1] = 1.0; planes[1].spe[2] = 1.0;//mirror
+
+	planes[2].amb[0] = 0.0; planes[2].amb[1] = 0.0; planes[2].amb[2] = 0.0;//mirror
+	planes[2].dif[0] = 0.0; planes[2].dif[1] = 0.0; planes[2].dif[2] = 0.0;//mirror
+	planes[2].spe[0] = 1.0; planes[2].spe[1] = 1.0; planes[2].spe[2] = 1.0;//mirror
 
 	planes[0].normal[0] = 0.0; planes[0].normal[1] = 1.0; planes[0].normal[2] = 0.0;
-	planes[1].normal[0] = -1.0; planes[1].normal[1] = 0.0; planes[1].normal[2] = 0.0;
+	planes[1].normal[0] = -1.0; planes[1].normal[1] = 0.0; planes[1].normal[2] = 1.0;
+	planes[2].normal[0] = 1.0; planes[2].normal[1] = 0.0; planes[2].normal[2] = 1.0;
+	
+	double d = length(planes[1].normal, 3);
+	for(int i = 0; i < 3; i++) planes[1].normal[i] = planes[1].normal[i] / d;
+	d = length(planes[2].normal, 3);
+	for(int i = 0; i < 3; i++) planes[2].normal[i] = planes[2].normal[i] / d;
 
 	planes[0].D = calculD(planes[0].vertex[0], planes[0].normal);
-	planes[1].D = calculD(planes[1].vertex[1], planes[1].normal);
-	//cout<<planes[0].D<<endl;
+	planes[1].D = calculD(planes[1].vertex[0], planes[1].normal);
+	planes[2].D = calculD(planes[2].vertex[2], planes[2].normal);
+
 	planes[0].shi = 80.0;
-	planes[1].shi = 20.0;
+	planes[1].shi = 10.0;
+	planes[2].shi = 10.0;
+	
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
-	lights[0].center[0] = 0.0; lights[0].center[1] = 100.0; lights[0].center[2] = 0.0;
+	lights[0].center[0] = 0.0; lights[0].center[1] = 0.0; lights[0].center[2] = 100.0;
 	//lights[1].center[0] = 0.0; lights[1].center[1] = 0.0; lights[1].center[2] = 100.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
