@@ -7,6 +7,8 @@
 #include<iostream>
 #include"vect.hpp"
 #include"quat.hpp"
+#include<Magick++.h>
+//hi
 #define PI 3.14159265
 #define H 500 //init 250.
 #define W 500 //init 250.
@@ -16,7 +18,9 @@
 	TODO : 1. when coding reflection, dist parameter need and return value is vector. when dist is on the preset constant, return values is zero vector.
 	
 */
+using namespace Magick;
 using namespace std;
+
 double refP[] = {0.0, 200.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
 double windowCenter[] = {0.0, 30.0, 30.0};
 double pixels[H][W][3];
@@ -39,6 +43,10 @@ typedef struct sph {
 	double dif[3];
 	double spe[3];
 	double shi;
+	int isTexture;
+	int height; //the number of row
+	int width; //the number of col
+	double** texture;
 	//materials after
 } Sphere;
 typedef struct pol {
@@ -50,12 +58,14 @@ typedef struct pol {
 	double shi;
 	double normal[3];
 	double D;
+	int isTexture;
 	//materials after
 } Plane;
 double interSphere(double* o, double* u, Sphere* s); //return value is s, because u is normal vector, distance is s
 double interPlane(double* o, double* u, Plane* p); //the same as interSphere.
 int crossVect(double* pInter, double* u, double* p0, double* p1, double* normal); //return value : 0(no cross), 1(cross exists).
 //crossVect is function for inside-outside test. find crosspoints exists with edge between p0 and p1, and half-line u
+void setTexture(string str);
 Light* lights;
 Sphere* spheres;
 Plane* planes;
@@ -68,7 +78,17 @@ int currRow;
 int currCol;
 
 int main(int argc, char** argv) {
+	InitializeMagick(*argv);
 	setObject("test");
+	string tN;
+	cout<<"please enter the number of texure file : ";
+	cin>>tN;
+	for(int i = 0; i < stoi(tN); i++) {
+		cout << "please enter your " << i<<"th texture file name : ";
+		string in;
+		cin >> in;
+		setTexture(in);
+	}
 	for(int i = 0; i < H; i++) {
 		for(int j = 0; j < W; j++) {
 			for(int k = 0; k < 3; k++) pixels[i][j][k] = 0.0;
@@ -457,6 +477,27 @@ void setObject(string str) {
 	//part for test.
 }
 
+void setTexture(string str) {
+	string in;
+	cout<<"type 0 : sphere, type 1 : plane, 0 or 1? ";
+	cin>>in;
+	int type = stoi(in);
+	cout<<"idx : ";
+	cin >> in;
+	int idx = stoi(in);
+	cout<<"H : ";
+	cin >> in;
+	int height = stoi(in);
+	cout<<"W : ";
+	cin >> in;
+	int width = stoi(in);
+	try {
+		Image img("texture0.bmp");
+	}
+	catch(Exception & error) {
+	}
+	return;
+}
 double calculD(double* vertex, double* normal) {
 	return -1.0 * dotProduct(vertex, normal);
 }
