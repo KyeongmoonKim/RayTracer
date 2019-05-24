@@ -21,8 +21,8 @@
 using namespace Magick;
 using namespace std;
 
-double refP[] = {0.0, 200.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
-double windowCenter[] = {0.0, 30.0, 30.0};
+double refP[] = {0.0, 0.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {0.0, 0.0, 50.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -107,9 +107,9 @@ int main(int argc, char** argv) {
 			double* rgb = (double *)malloc(sizeof(double)*3);
 			double ret = color(refP, v, rgb, 0.0, -1, -1);
 			if(ret < 0.0) { //background color is black.
-				pixels[i][j][0] = 1.0;
-				pixels[i][j][1] = 1.0;
-				pixels[i][j][2] = 1.0;
+				pixels[i][j][0] = 0.0;
+				pixels[i][j][1] = 0.0;
+				pixels[i][j][2] = 0.0;
 			} else {
 				for(int k = 0; k < 3; k++) pixels[i][j][k] = rgb[k];// * l / ret;
 			}
@@ -199,7 +199,6 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 	for(int i = 0; i < planeNum; i++) {
 		if(bType==1 && bIdx == i) continue; //pass the reflexed surface
 		double tempS = interPlane(o, v, &(planes[i]));
-		//cout<<"tempS : " << tempS<<endl;
 		if(tempS < s) {
 			s = tempS;
 			currIdx = i;
@@ -306,7 +305,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 			double temp = reflS/l;
 			if(temp < 1.0) temp = 1.0;
 			//tempRgb[i] += reflRgb[i] * dif[i] * dotProduct(N, V) / temp;
-			tempRgb[i] += reflRgb[i] * spe[i] / temp;
+			tempRgb[i] += reflRgb[i] * spe[i];// / temp;
 		}
 	}
 	free(reflRgb);
@@ -392,7 +391,7 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 void setObject(string str) {
 	sphereNum = 1;
 	planeNum = 3;
-	lightNum = 2;
+	lightNum = 1;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*10);//replace 10 to sphereNum
 	spheres[0].r = 30.0;
 	spheres[1].r = 30.0;
@@ -410,6 +409,8 @@ void setObject(string str) {
 	spheres[1].spe[0] = 1.0; spheres[1].spe[1] = 1.0; spheres[1].spe[2] = 1.0;
 	spheres[0].shi = 20.0;
 	spheres[1].shi = 20.0;
+	spheres[0].isTexture = 0;
+	spheres[1].isTexture = 0;
 	//test part for sphere
 	planes = (Plane*)malloc(sizeof(Plane)*10);//replace 10 to planeNum
 	planes[0].n = 4;
@@ -467,10 +468,13 @@ void setObject(string str) {
 	planes[1].shi = 10.0;
 	planes[2].shi = 10.0;
 	
+	planes[0].isTexture = 0;
+	planes[1].isTexture = 0;
+	planes[2].isTexture = 0;
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
-	lights[0].center[0] = 0.0; lights[0].center[1] = 0.0; lights[0].center[2] = 100.0;
-	lights[1].center[0] = 0.0; lights[1].center[1] = 100.0; lights[1].center[2] = 0.0;
+	lights[0].center[0] = 10.0; lights[0].center[1] = 100.0; lights[0].center[2] = 0.0;
+	lights[1].center[0] = -100.0; lights[1].center[1] = 100.0; lights[1].center[2] = 0.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
 			lights[i].amb[j] = 0.0;
@@ -492,10 +496,10 @@ void setTexture(string str) {//set the texture of the plane or the sphere.
 	int idx = stoi(in);
 	cout<<"H : ";
 	cin >> in;
-	int width = stoi(in);
+	int height = stoi(in);
 	cout<<"W : ";
 	cin >> in;
-	int height = stoi(in);
+	int width = stoi(in);
 	double*** rgbs = (double***)malloc(sizeof(double**)*height);
 	for(int i = 0; i < height; i++) {
 		rgbs[i] = (double**)malloc(sizeof(double*)*width);
@@ -536,10 +540,10 @@ double calculD(double* vertex, double* normal) {
 }
 
 double* sphereTexture(int idx, double* normal) {
-	double u = 0.5 + atan2(normal[2], normal[1]) / (2 * PI);
-	double v = 0.5 - asin(normal[2])/PI;
-	int x = u * (spheres[idx].height - 1);
-	int y = v * (spheres[idx].width - 1);
+	double u = 0.5 + atan2(normal[2], normal[0]) / (2 * PI);
+	double v = 0.5 - asin(normal[1])/PI;
+	int x = (int)(u * (spheres[idx].height-1)); //(x, y) <=> (v, u). because bmp and ppm is traject.
+	int y = (int)(v * (spheres[idx].width-1));
 	double* ret = spheres[idx].texture[x][y];
 	return ret;
 }
