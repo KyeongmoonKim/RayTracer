@@ -43,10 +43,10 @@ typedef struct sph {
 	double dif[3];
 	double spe[3];
 	double shi;
-	int isTexture;
+	int isTexture; //flag of texture
 	int height; //the number of row
 	int width; //the number of col
-	double** texture;
+	double*** texture; //if isTexture == 1, texture replaces dif.
 	//materials after
 } Sphere;
 typedef struct pol {
@@ -59,6 +59,9 @@ typedef struct pol {
 	double normal[3];
 	double D;
 	int isTexture;
+	int height;
+	int width;
+	double*** texture;
 	//materials after
 } Plane;
 double interSphere(double* o, double* u, Sphere* s); //return value is s, because u is normal vector, distance is s
@@ -66,6 +69,8 @@ double interPlane(double* o, double* u, Plane* p); //the same as interSphere.
 int crossVect(double* pInter, double* u, double* p0, double* p1, double* normal); //return value : 0(no cross), 1(cross exists).
 //crossVect is function for inside-outside test. find crosspoints exists with edge between p0 and p1, and half-line u
 void setTexture(string str);
+double* sphereTexture(int idx, double* normal);
+
 Light* lights;
 Sphere* spheres;
 Plane* planes;
@@ -218,18 +223,21 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 	double* dif;
 	double* spe;
 	double shi;
+	int isTexture;
 	if(type == 0) {
+		isTexture = spheres[currIdx].isTexture;
+		for(int i = 0; i < 3; i++) N[i] = (pInter[i] - spheres[currIdx].center[i])/spheres[currIdx].r;
 		amb = spheres[currIdx].amb;
-		dif = spheres[currIdx].dif;
+		if(spheres[currIdx].isTexture == 0) dif = spheres[currIdx].dif;
+		else dif = sphereTexture(currIdx, N);
 		spe = spheres[currIdx].spe;
 		shi = spheres[currIdx].shi;
-		for(int i = 0; i < 3; i++) N[i] = (pInter[i] - spheres[currIdx].center[i])/spheres[currIdx].r;
 	} else {
+		for(int i = 0; i < 3; i++) N[i] = planes[currIdx].normal[i];
 		amb = planes[currIdx].amb;
 		dif = planes[currIdx].dif;
 		spe = planes[currIdx].spe;
 		shi = planes[currIdx].shi;
-		for(int i = 0; i < 3; i++) N[i] = planes[currIdx].normal[i];
 	} //informaton allocation
 	double V[3];
 	for(int i = 0; i < 3; i++) V[i] = -1.0 * v[i]; //reverse vector of v.
@@ -278,7 +286,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 				double wow = d[i]/l;
 				if(wow < 1.0)  wow = 1.0;
 				tempRgb[j] += lights[i].amb[j]*amb[j]; //ambient caculation
-				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]) / wow;//diffuse caculation
+				tempRgb[j] += lights[i].dif[j]*dif[j]*dotProduct(N, L[i]) / wow;
 				if(dotProduct(R[i], V) > 0.0) {//after thinking
 					double temp = lights[i].spe[j]*spe[j]*pow(dotProduct(R[i], V), shi) / wow;
 					tempRgb[j] += temp;
@@ -332,11 +340,9 @@ double interPlane(double* o, double* u, Plane* p) {
 	if(s < 0.0) {
 		return 20000.0; //no intersection.
 	}
-	//cout<<"s in the inter plane : "<< s<<endl;
 	double pInter[3];
 	for(int i = 0; i < 3; i++) pInter[i] = o[i] + s * u[i];
 	//inside-outside test.
-	//cout<<"pInter : " <<pInter[0]<<", "<<pInter[1]<<", "<<pInter[2]<<endl;
 	int crossNum = 0;
 	double uPlane[3];
 	for(int i = 0; i < 3; i++) {
@@ -346,7 +352,6 @@ double interPlane(double* o, double* u, Plane* p) {
 	double d = length(uPlane, 3);
 	for(int i = 0; i < 3; i++) uPlane[i] = uPlane[i]/d;
 	for(int i = 0; i < p->n; i++) {//find existence of cross point.
-		//cout<<"i before crossVect in interPlane : "<<i<<endl; 
 		crossNum += crossVect(pInter, uPlane, p->vertex[i], p->vertex[(i+1)%(p->n)], p->normal);
 	}
 	if(crossNum%2==0) {//even is outside. so intersection doesn't exist.
@@ -465,7 +470,7 @@ void setObject(string str) {
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
 	lights[0].center[0] = 0.0; lights[0].center[1] = 0.0; lights[0].center[2] = 100.0;
-	//lights[1].center[0] = 0.0; lights[1].center[1] = 0.0; lights[1].center[2] = 100.0;
+	lights[1].center[0] = 0.0; lights[1].center[1] = 100.0; lights[1].center[2] = 0.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
 			lights[i].amb[j] = 0.0;
@@ -477,31 +482,67 @@ void setObject(string str) {
 	//part for test.
 }
 
-void setTexture(string str) {
+void setTexture(string str) {//set the texture of the plane or the sphere.
 	string in;
 	cout<<"type 0 : sphere, type 1 : plane, 0 or 1? ";
 	cin>>in;
-	int type = stoi(in);
+	int type = stoi(in);//type
 	cout<<"idx : ";
 	cin >> in;
 	int idx = stoi(in);
 	cout<<"H : ";
 	cin >> in;
-	int height = stoi(in);
+	int width = stoi(in);
 	cout<<"W : ";
 	cin >> in;
-	int width = stoi(in);
+	int height = stoi(in);
+	double*** rgbs = (double***)malloc(sizeof(double**)*height);
+	for(int i = 0; i < height; i++) {
+		rgbs[i] = (double**)malloc(sizeof(double*)*width);
+		for(int j = 0; j < width; j++) {
+			rgbs[i][j] = (double*)malloc(sizeof(double)*3);
+		}
+	}//memory allocation
 	try {
-		Image img("texture0.bmp");
+		Image img(str);
+		for(int i = 0; i < height; i++) {
+			for(int j = 0; j < width; j++) {
+				ColorRGB rgb(img.pixelColor(i, j));
+				rgbs[i][j][0] = rgb.red();
+				rgbs[i][j][1] = rgb.green();
+				rgbs[i][j][2] = rgb.blue();
+			}
+		}
+		if(type==0) {
+			spheres[idx].isTexture = 1;
+			spheres[idx].height = height;
+			spheres[idx].width = width;
+			spheres[idx].texture = rgbs;
+		} else {
+			planes[idx].isTexture = 1;
+			planes[idx].height = height;
+			planes[idx].width = width;
+			planes[idx].texture = rgbs;
+		}
 	}
 	catch(Exception & error) {
+		cout<<error.what()<<endl;
 	}
 	return;
 }
+
 double calculD(double* vertex, double* normal) {
 	return -1.0 * dotProduct(vertex, normal);
 }
 
+double* sphereTexture(int idx, double* normal) {
+	double u = 0.5 + atan2(normal[2], normal[1]) / (2 * PI);
+	double v = 0.5 - asin(normal[2])/PI;
+	int x = u * (spheres[idx].height - 1);
+	int y = v * (spheres[idx].width - 1);
+	double* ret = spheres[idx].texture[x][y];
+	return ret;
+}
 int parallel(double* v1, double* v2) {
 	double d1 = length(v1, 3);
 	double d2 = length(v2, 3);
