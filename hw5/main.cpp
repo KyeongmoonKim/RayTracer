@@ -22,8 +22,8 @@
 using namespace Magick;
 using namespace std;
 
-double refP[] = {0.0, 200.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
-double windowCenter[] = {0.0, 50.0, 50.0};
+double refP[] = {10.0, 100.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {10.0, 25.0, 50.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -190,14 +190,14 @@ double* pixelD(int row, int col) {
 } //normal vector for reference point to pixel.
 
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx) {
-	if(dist > 500.0) return -1.0; //so far away.
+	if(dist > 10000.0) return -1.0; //so far away.
 	double s = 20000.0;
 	int currIdx;
 	int type = 0;//0 is sphere, 1 is polygon.
 	for(int i = 0; i < sphereNum; i++) {
 		if(bType==0 && bIdx == i) continue; //pass the reflexed surface
 		double tempS = interSphere(o, v, &(spheres[i]));
-		if(tempS < s /*&& tempS > 0.001*/) { 
+		if(tempS < s && tempS > 0.001) {//when the point is common point, regard as the same point
 			s = tempS; 
 			currIdx = i;
 		}
@@ -206,7 +206,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 	for(int i = 0; i < planeNum; i++) {
 		if(bType==1 && bIdx == i) continue; //pass the reflexed surface
 		double tempS = interPlane(o, v, &(planes[i]));
-		if(tempS < s /*&& tempS > 0.001*/) {
+		if(tempS < s && tempS > 0.001) {
 			s = tempS;
 			currIdx = i;
 			type = 1;
@@ -274,14 +274,14 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 			for(int j = 0; j < sphereNum; j++) {
 				if(j != currIdx || type==1) {
 					double ttS = interSphere(pInter, L[i], &(spheres[j]));
-					if(ttS < tS && ttS < d[i]) tS = ttS;
+					if(ttS < tS && ttS < d[i] && ttS > 0.001) tS = ttS;
 				}
 			}
 			
 			for(int j = 0; j < planeNum; j++) {
 				if(j != currIdx || type==0) {
 					double ttS = interPlane(pInter, L[i], &(planes[j]));
-					if(ttS < tS && ttS < d[i]) tS = ttS;
+					if(ttS < tS && ttS < d[i] && ttS > 0.001) tS = ttS;
 				}
 			}
 			if(tS != 20000.0) continue; //light isn't seen. but ts is near zero, same point
@@ -345,13 +345,13 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 		free(T);
 	}*/ //after plane refracton.
 	//
-	/*if(type == 1 && planes[currIdx].alpha != 1.0) {//plane. refraction occures one times.
+	if(type == 1 && planes[currIdx].alpha != 1.0) {//plane. refraction occures one times.
 		double *refrRgb = (double *)malloc(sizeof(double)*3);
 		double nr = planes[currIdx].nr;
 		double alpha = planes[currIdx].alpha;
 		double* T = calculT(V, N, 1.0, nr);
 		double refrS = color(pInter, T, refrRgb, dist+s, 1, currIdx);
-		if(refrS > 0.0) {
+		if(refrS > 0.01) {
 			for(int i = 0; i < 3; i++) {
 				double temp = refrS / rl;
 				if(temp < 1.0) temp = 1.0;
@@ -360,7 +360,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 		}
 		free(T);
 		free(refrRgb);
-	}*/
+	}
 	for(int i = 0; i < 3; i++) rgb[i] = tempRgb[i];
 	return s;
 }
@@ -372,6 +372,8 @@ double* calculT(double* L, double* N, double ni, double nr) {
 	for(int i = 0; i < 3; i++) {
 		ret[i] = (temp * cos1 - cos2)*N[i] - temp*L[i];
 	}
+	double d = length(ret, 3);
+	for(int i = 0; i < 3; i++) ret[i] = ret[i] / d;
 	return ret;
 } //return vector of refracton.
 
@@ -404,13 +406,13 @@ double interSphere(double* o, double* u, Sphere* s) {
 	double b = -2.0 * dotProduct(u, deltaP);
 	double c = length(deltaP, 3) * length(deltaP, 3) - (s->r) * (s->r);
 	double temp = b*b - 4.0 * c;
-	if(temp < 0.00001) { // no intersection.
+	if(temp < 0.001) { // no intersection.
 		return 20000.0;
-	} else if(temp > 0.00001) { //2 point intersection
+	} else if(temp > 0.001) { //2 point intersection
 		double s1 = (-1.0 * b - sqrt(temp)) / 2.0;
 		double s2 = (-1.0 * b + sqrt(temp)) / 2.0;
-		double ret = min(s1, s2);
-		/*if(ret < 0.0) return 20000.0; //because o is out of sphere, s1 and s2 both are minus value.
+		/*double ret = min(s1, s2);
+		if(ret < 0.0) return 20000.0; //because o is out of sphere, s1 and s2 both are minus value.
 		else return ret; //because o is out of sphere, min value has less distance.*/
 		double m = min(s1, s2);
 		double M = max(s1, s2);
@@ -427,7 +429,7 @@ double interSphere(double* o, double* u, Sphere* s) {
 double interPlane(double* o, double* u, Plane* p) {
 	double s;
 	if(dotProduct(p->normal, u) < 0.001 && dotProduct(p->normal, u) > -0.001) {//on plane or parallel to plane
-		double temp = dotProduct(p->normal, o) - p->D;
+		double temp = dotProduct(p->normal, o) + p->D;
 		if(temp < 0.0001 && temp > -0.0001) s = 0.0;
 		else return 20000.0; //no intersection
 	} else {
@@ -465,13 +467,13 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 	for(int i = 0; i < 3; i++) v[i] = v[i]/d;
 	double* N = crossProduct(v, normal); //new normal vector, and 
 	double D = calculD(p0, N);
-	if(parallel(u, v) == 1) {//parallel case
+	/*if(parallel(u, v) == 1) {//parallel case
 		return 0;
 	} 
-	//not parallel
+	//not parallel */
 	double s;
 	if(dotProduct(N, u) < 0.0001 && dotProduct(N, u) > -0.0001) { //parallel to plane
-		double temp = dotProduct(N, u) - D;
+		double temp = dotProduct(N, pInter) + D;
 		if(temp < 0.0001 && temp > -0.0001) s = 0.0; //on the same plane.
 		else return 0;
 	} else {
@@ -494,8 +496,8 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 //finally, if length of p0 -> pNew is bigger than 0 and shorter than length(v), it has crosspoint.
 
 void setObject(string str) {
-	sphereNum = 1;
-	planeNum = 3;
+	sphereNum = 2;
+	planeNum = 4;
 	lightNum = 3;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*10);//replace 10 to sphereNum
 	spheres[0].r = 30.0;
@@ -523,13 +525,16 @@ void setObject(string str) {
 	planes[0].n = 4;
 	planes[1].n = 4;
 	planes[2].n = 4;
+	planes[3].n = 4;
 	planes[0].vertex = (double **)malloc(sizeof(double*)*planes[0].n);
 	planes[1].vertex = (double **)malloc(sizeof(double*)*planes[1].n);
 	planes[2].vertex = (double **)malloc(sizeof(double*)*planes[2].n);
+	planes[3].vertex = (double **)malloc(sizeof(double*)*planes[3].n);
 	for(int i = 0; i < planes[0].n; i++) {
 		planes[0].vertex[i] = (double *)malloc(sizeof(double)*3);
 		planes[1].vertex[i] = (double *)malloc(sizeof(double)*3);
 		planes[2].vertex[i] = (double *)malloc(sizeof(double)*3);
+		planes[3].vertex[i] = (double *)malloc(sizeof(double)*3);
 	}
 	planes[0].vertex[0][0] = 200.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 200.0;
 	planes[0].vertex[1][0] = 200.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -200.0;
@@ -546,6 +551,11 @@ void setObject(string str) {
 	planes[2].vertex[2][0] = 0.0; planes[2].vertex[2][1] = -30.0; planes[2].vertex[2][2] = -70.0;
 	planes[2].vertex[3][0] = 0.0; planes[2].vertex[3][1] = 100.0; planes[2].vertex[3][2] = -70.0;
 
+	planes[3].vertex[0][0] = 0.0; planes[3].vertex[0][1] = -30.0; planes[3].vertex[0][2] = 100.0;
+	planes[3].vertex[1][0] = 0.0; planes[3].vertex[1][1] = 70.0; planes[3].vertex[1][2] = 100.0;
+	planes[3].vertex[2][0] = -80.0; planes[3].vertex[2][1] = 70.0; planes[3].vertex[2][2] = 100.0;
+	planes[3].vertex[3][0] = -80.0; planes[3].vertex[3][1] = -30.0; planes[3].vertex[3][2] = 100.0;
+
 	planes[0].amb[0] = 0.2125; planes[0].amb[1] = 0.1275; planes[0].amb[2] = 0.054;
 	planes[0].dif[0] = 0.714; planes[0].dif[1] = 0.4284; planes[0].dif[2] = 0.18144;
 	planes[0].spe[0] = 0.3; planes[0].spe[1] = 0.3; planes[0].spe[2] = 0.3;
@@ -558,10 +568,15 @@ void setObject(string str) {
 	planes[2].dif[0] = 0.0; planes[2].dif[1] = 0.0; planes[2].dif[2] = 0.0;//mirror
 	planes[2].spe[0] = 1.0; planes[2].spe[1] = 1.0; planes[2].spe[2] = 1.0;//mirror
 
+	planes[3].amb[0] = 0.0; planes[3].amb[1] = 0.0; planes[3].amb[2] = 0.0;
+	planes[3].dif[0] = 0.321; planes[3].dif[1] = 0.247; planes[3].dif[2] = 0.6531;
+	planes[3].spe[0] = 0.2; planes[3].spe[1] = 0.2; planes[3].spe[2] = 0.2;
+
 	planes[0].normal[0] = 0.0; planes[0].normal[1] = 1.0; planes[0].normal[2] = 0.0;
 	planes[1].normal[0] = -1.0; planes[1].normal[1] = 0.0; planes[1].normal[2] = 1.0;
 	planes[2].normal[0] = 1.0; planes[2].normal[1] = 0.0; planes[2].normal[2] = 1.0;
-	
+	planes[3].normal[0] = 0.0; planes[3].normal[1] = 0.0; planes[3].normal[2] = 1.0;
+
 	double d = length(planes[1].normal, 3);
 	for(int i = 0; i < 3; i++) planes[1].normal[i] = planes[1].normal[i] / d;
 	d = length(planes[2].normal, 3);
@@ -569,24 +584,29 @@ void setObject(string str) {
 
 	planes[0].D = calculD(planes[0].vertex[0], planes[0].normal);
 	planes[1].D = calculD(planes[1].vertex[0], planes[1].normal);
-	planes[2].D = calculD(planes[2].vertex[2], planes[2].normal);
-
+	planes[2].D = calculD(planes[2].vertex[0], planes[2].normal);
+	planes[3].D = calculD(planes[3].vertex[0], planes[3].normal);
+	cout<<planes[3].D<<endl;
 	planes[0].shi = 80.0;
 	planes[1].shi = 10.0;
 	planes[2].shi = 10.0;
+	planes[3].shi = 50.0;
 	
 	planes[0].isTexture = 0;
 	planes[1].isTexture = 0;
 	planes[2].isTexture = 0;
+	planes[3].isTexture = 0;
 
 	planes[0].alpha = 1.0;
 	planes[1].alpha = 1.0;
 	planes[2].alpha = 1.0;
+	planes[3].alpha = 0.6;
+	planes[3].nr = 1.0;
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
-	lights[0].center[0] = 100.0; lights[0].center[1] = 100.0; lights[0].center[2] = 100.0;
-	lights[1].center[0] = 0.0; lights[1].center[1] = 1000.0; lights[1].center[2] = 100.0;
-	lights[2].center[0] = -100.0; lights[2].center[1] = 100.0; lights[2].center[2] = 100.0;
+	lights[0].center[0] = 100.0; lights[0].center[1] = 100.0; lights[0].center[2] = 130.0;
+	lights[1].center[0] = 0.0; lights[1].center[1] = 100.0; lights[1].center[2] = 130.0;
+	lights[2].center[0] = -100.0; lights[2].center[1] = 100.0; lights[2].center[2] = 130.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
 			lights[i].amb[j] = 0.0;
