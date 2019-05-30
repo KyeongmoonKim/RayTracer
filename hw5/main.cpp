@@ -12,7 +12,7 @@
 #define PI 3.14159265
 #define H 500 //init 250.
 #define W 500 //init 250.
-#define l 800 // used when calculating light decay.
+#define l 900 // used when calculating light decay.
 #define rl 55 // used when caculating reflexion decay
 /*
 	TOKNOW : for debugging, sphereNum is zero
@@ -73,8 +73,9 @@ double interSphere(double* o, double* u, Sphere* s); //return value is s, becaus
 double interPlane(double* o, double* u, Plane* p); //the same as interSphere.
 int crossVect(double* pInter, double* u, double* p0, double* p1, double* normal); //return value : 0(no cross), 1(cross exists).
 //crossVect is function for inside-outside test. find crosspoints exists with edge between p0 and p1, and half-line u
-void setTexture(string str);
+void setTexture(string str, int a, int b, int c, int d);
 double* sphereTexture(int idx, double* normal);
+double* planeTexture(int idx, double* point);
 double* calculT(double *L, double* N, double ni, double nr);
 double innerSphere(double* o, double* u, Sphere* s);
 
@@ -92,14 +93,25 @@ int currCol;
 int main(int argc, char** argv) {
 	InitializeMagick(*argv);
 	setObject("test");
-	string tN;
-	cout<<"please enter the number of texure file : ";
-	cin>>tN;
-	for(int i = 0; i < stoi(tN); i++) {
-		cout << "please enter your " << i<<"th texture file name : ";
-		string in;
-		cin >> in;
-		setTexture(in);
+	string tfName;
+	cout<<"please enter your texure information file : ";
+	cin>>tfName;
+	ifstream input2("texture.txt");
+	string line;
+	getline(input2, line);
+	int textureNum = stoi(line);
+	for(int i = 0; i < textureNum; i++) {
+		string name;
+		getline(input2, name);
+		getline(input2, line);
+		int a = stoi(line);
+		getline(input2, line);
+		int b = stoi(line);
+		getline(input2, line);
+		int c = stoi(line);
+		getline(input2, line);
+		int d = stoi(line);
+		setTexture(name, a, b, c, d);
 	}
 	for(int i = 0; i < H; i++) {
 		for(int j = 0; j < W; j++) {
@@ -239,9 +251,11 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 		spe = spheres[currIdx].spe;
 		shi = spheres[currIdx].shi;
 	} else {
+		isTexture = planes[currIdx].isTexture;
 		for(int i = 0; i < 3; i++) N[i] = planes[currIdx].normal[i];
 		amb = planes[currIdx].amb;
-		dif = planes[currIdx].dif;
+		if(planes[currIdx].isTexture == 0) dif = planes[currIdx].dif;
+		else dif = planeTexture(currIdx, pInter);
 		spe = planes[currIdx].spe;
 		shi = planes[currIdx].shi;
 	} //informaton allocation
@@ -501,7 +515,7 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 void setObject(string str) {
 	sphereNum = 3;
 	planeNum = 6;
-	lightNum = 2;
+	lightNum = 1;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*10);//replace 10 to sphereNum
 	spheres[0].r = 30.0;
 	spheres[1].r = 30.0;
@@ -546,10 +560,10 @@ void setObject(string str) {
 		}
 	}
 
-	planes[0].vertex[0][0] = 350.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = 350.0;
-	planes[0].vertex[1][0] = 350.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = -350.0;
-	planes[0].vertex[2][0] = -350.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = -350.0;
-	planes[0].vertex[3][0] = -350.0; planes[0].vertex[3][1] = -30.0; planes[0].vertex[3][2] = 350.0;
+	planes[0].vertex[0][0] = -350.0; planes[0].vertex[0][1] = -30.0; planes[0].vertex[0][2] = -350.0;
+	planes[0].vertex[1][0] = -350.0; planes[0].vertex[1][1] = -30.0; planes[0].vertex[1][2] = 350.0;
+	planes[0].vertex[2][0] = 350.0; planes[0].vertex[2][1] = -30.0; planes[0].vertex[2][2] = 350.0;
+	planes[0].vertex[3][0] = 350.0; planes[0].vertex[3][1] = -30.0; planes[0].vertex[3][2] = -350.0;
 	
 	planes[1].vertex[0][0] = 90.0; planes[1].vertex[0][1] = -30.0; planes[1].vertex[0][2] = -30.0;
 	planes[1].vertex[1][0] = 90.0; planes[1].vertex[1][1] = 100.0; planes[1].vertex[1][2] = -30.0;
@@ -561,25 +575,25 @@ void setObject(string str) {
 	planes[2].vertex[2][0] = 0.0; planes[2].vertex[2][1] = -30.0; planes[2].vertex[2][2] = -120.0;
 	planes[2].vertex[3][0] = 0.0; planes[2].vertex[3][1] = 100.0; planes[2].vertex[3][2] = -120.0;
 
-	planes[3].vertex[0][0] = 350.0; planes[3].vertex[0][1] = -30.0; planes[3].vertex[0][2] = -350.0;
-	planes[3].vertex[1][0] = 350.0; planes[3].vertex[1][1] = 350.0; planes[3].vertex[1][2] = -350.0;
-	planes[3].vertex[2][0] = -350.0; planes[3].vertex[2][1] = 350.0; planes[3].vertex[2][2] = -350.0;
-	planes[3].vertex[3][0] = -350.0; planes[3].vertex[3][1] = -30.0; planes[3].vertex[3][2] = -350.0;
+	planes[3].vertex[0][0] = -350.0; planes[3].vertex[0][1] = 350.0; planes[3].vertex[0][2] = -350.0;
+	planes[3].vertex[1][0] = -350.0; planes[3].vertex[1][1] = -30.0; planes[3].vertex[1][2] = -350.0;
+	planes[3].vertex[2][0] = 350.0; planes[3].vertex[2][1] = -30.0; planes[3].vertex[2][2] = -350.0;
+	planes[3].vertex[3][0] = 350.0; planes[3].vertex[3][1] = 350.0; planes[3].vertex[3][2] = -350.0;
 
 	/*planes[4].vertex[0][0] = 350.0; planes[4].vertex[0][1] = 350.0; planes[4].vertex[0][2] = -350.0;
 	planes[4].vertex[1][0] = 350.0; planes[4].vertex[1][1] = 350.0; planes[4].vertex[1][2] = 350.0;
 	planes[4].vertex[2][0] = -350.0; planes[4].vertex[2][1] = 350.0; planes[4].vertex[2][2] = 350.0;
 	planes[4].vertex[3][0] = -350.0; planes[4].vertex[3][1] = 350.0; planes[4].vertex[3][2] = -350.0; */
 
-	planes[4].vertex[0][0] = 350.0; planes[4].vertex[0][1] = 350.0; planes[4].vertex[0][2] = 350.0;
-	planes[4].vertex[1][0] = 350.0; planes[4].vertex[1][1] = 350.0; planes[4].vertex[1][2] = -350.0;
-	planes[4].vertex[2][0] = 350.0; planes[4].vertex[2][1] = -30.0; planes[4].vertex[2][2] = -350.0;
-	planes[4].vertex[3][0] = 350.0; planes[4].vertex[3][1] = -30.0; planes[4].vertex[3][2] = 350.0;
+	planes[4].vertex[0][0] = 350.0; planes[4].vertex[0][1] = 350.0; planes[4].vertex[0][2] = -350.0;
+	planes[4].vertex[1][0] = 350.0; planes[4].vertex[1][1] = -30.0; planes[4].vertex[1][2] = -350.0;
+	planes[4].vertex[2][0] = 350.0; planes[4].vertex[2][1] = -30.0; planes[4].vertex[2][2] = 350.0;
+	planes[4].vertex[3][0] = 350.0; planes[4].vertex[3][1] = 350.0; planes[4].vertex[3][2] = 350.0;
 
-	planes[5].vertex[0][0] = -350.0; planes[5].vertex[0][1] = 350.0; planes[5].vertex[0][2] = -350.0;
-	planes[5].vertex[1][0] = -350.0; planes[5].vertex[1][1] = 350.0; planes[5].vertex[1][2] = 350.0;
-	planes[5].vertex[2][0] = -350.0; planes[5].vertex[2][1] = -30.0; planes[5].vertex[2][2] = 350.0;
-	planes[5].vertex[3][0] = -350.0; planes[5].vertex[3][1] = -30.0; planes[5].vertex[3][2] = -350.0;
+	planes[5].vertex[0][0] = -350.0; planes[5].vertex[0][1] = 350.0; planes[5].vertex[0][2] = 350.0;
+	planes[5].vertex[1][0] = -350.0; planes[5].vertex[1][1] = -30.0; planes[5].vertex[1][2] = 350.0;
+	planes[5].vertex[2][0] = -350.0; planes[5].vertex[2][1] = -30.0; planes[5].vertex[2][2] = -350.0;
+	planes[5].vertex[3][0] = -350.0; planes[5].vertex[3][1] = 350.0; planes[5].vertex[3][2] = -350.0;
 
 	planes[0].amb[0] = 0.2125; planes[0].amb[1] = 0.1275; planes[0].amb[2] = 0.054;
 	planes[0].dif[0] = 0.714; planes[0].dif[1] = 0.4284; planes[0].dif[2] = 0.18144;
@@ -629,8 +643,8 @@ void setObject(string str) {
 	
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
-	lights[0].center[0] = 10.0; lights[0].center[1] = 0.0; lights[0].center[2] = 700.0;
-	lights[1].center[0] = 10.0; lights[1].center[1] = 700.0; lights[1].center[2] = 0.0;
+	lights[0].center[0] = 10.0; lights[0].center[1] = 1000.0; lights[0].center[2] = 0.0;
+	lights[1].center[0] = 10.0; lights[1].center[1] = 0.0; lights[1].center[2] = 700.0;
 	lights[2].center[0] = -100.0; lights[2].center[1] = 100.0; lights[2].center[2] = 130.0;
 	for(int i = 0; i < lightNum; i++) {
 		for(int j = 0; j < 3; j++) {
@@ -643,20 +657,11 @@ void setObject(string str) {
 	//part for test.
 }
 
-void setTexture(string str) {//set the texture of the plane or the sphere.
-	string in;
-	cout<<"type 0 : sphere, type 1 : plane, 0 or 1? ";
-	cin>>in;
-	int type = stoi(in);//type
-	cout<<"idx : ";
-	cin >> in;
-	int idx = stoi(in);
-	cout<<"H : ";
-	cin >> in;
-	int height = stoi(in);
-	cout<<"W : ";
-	cin >> in;
-	int width = stoi(in);
+void setTexture(string str, int a, int b, int c, int d) {//set the texture of the plane or the sphere.
+	int type = a;//type
+	int idx = b;
+	int height = c;
+	int width = d;
 	double*** rgbs = (double***)malloc(sizeof(double**)*height);
 	for(int i = 0; i < height; i++) {
 		rgbs[i] = (double**)malloc(sizeof(double*)*width);
@@ -699,9 +704,32 @@ double calculD(double* vertex, double* normal) {
 double* sphereTexture(int idx, double* normal) {
 	double u = 0.5 + atan2(normal[2], normal[0]) / (2 * PI);
 	double v = 0.5 - asin(normal[1])/PI;
-	int x = (int)(u * (spheres[idx].height-1)); //(x, y) <=> (v, u). because bmp and ppm is traject.
+	int x = (int)(u * (spheres[idx].height-1)); 
 	int y = (int)(v * (spheres[idx].width-1));
 	double* ret = spheres[idx].texture[x][y];
+	return ret;
+}
+
+double* planeTexture(int idx, double* point) {//for rectangle
+	double uV[3]; //xAxis of plane
+	double vV[3]; //yAxis of plane
+	for(int i = 0; i < 3; i++) {
+		uV[i] = planes[idx].vertex[3][i] - planes[idx].vertex[0][i];
+		vV[i] = planes[idx].vertex[1][i] - planes[idx].vertex[0][i];
+	}
+	double DX = length(uV, 3);  //length of xAxis
+	double DY = length(vV, 3);  //length of yAxis
+	double pV[3];
+	for(int i = 0; i < 3; i++) {
+		uV[i] = uV[i] / DX;
+		vV[i] = vV[i] / DY;
+		pV[i] = point[i] - planes[idx].vertex[0][i];
+	}
+	double u = dotProduct(pV, uV) / DX; //dotProduct(pV) == length of xAxis of pV
+	double v = dotProduct(pV, vV) / DY;
+	int x = (int)(u * (planes[idx].height-1));
+	int y = (int)(v * (planes[idx].width-1));
+	double* ret = planes[idx].texture[x][y];
 	return ret;
 }
 int parallel(double* v1, double* v2) {

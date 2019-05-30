@@ -6,6 +6,7 @@
 #include<fstream>
 #include<algorithm>
 #include<string.h>
+#include<stdio.h>
 #define PI 3.14159265
 
 using namespace std;
@@ -49,7 +50,7 @@ float* Qlog(double *q);
 double* Qexp(float *v);
 double* Qinverse(double *q);
 float** movePv(float** pv, float scala, float* rv, float *tv, int n);
-void drawSword(int idx, float x, float y, float z);
+void drawSword();
 //hw4
 typedef struct rect {
 	float points[4][3];
@@ -72,71 +73,6 @@ int light2 = 0;
 float* getNV(float* p0, float *p1, float *p2);
 int test1=1;
 int test2=1;
-
-void myDraw() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(zoomAngle, 1.0, 0.1, 400); //temp zoom in
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	if(axisView == 1) {
-		double tV[3];
-		for(int i = 0; i < 3; i++) tV[i] = p0[i] - pref[i];
-		double d = -1.0 * length(tV, 3);
-		glBegin(GL_LINES);
-			glColor3f(1.0, 0.0, 1.0);
-			glVertex3f(0, 0, d);
-			glVertex3f(0, 3, d);
-			glVertex3f(0, 0, d);
-			glVertex3f(3, 0, d); 
-		glEnd();
-	}
-	gluLookAt(p0[0], p0[1], p0[2], pref[0], pref[1], pref[2],  viewUp[0], viewUp[1], viewUp[2]);
-	spotLight();
-	depthCheck = (int *)malloc(sizeof(int)*rectNum);
-	double viewing[3];
-	for(int i = 0; i < 3; i++) viewing[i] = pref[i]-p0[i];
-	double len = length(viewing, 3);
-	for(int i = 0; i < 3; i++) viewing[i] = viewing[i]/len;
-	for(int i = 0; i < rectNum; i++) {
-		if(dotProduct(viewing, rts[i].nv) > 0) depthCheck[i] = 0; //backFace
-		//if(dotProduct(rts[i].nv, p0) + rts[i].nv[3] < 0) depthCheck[i] = 0;
-		else depthCheck[i] = 1; //frontFace
-	}
-	glPushMatrix();
-	{//start drawing
-		drawSword(0, 0, 0, 0);
-		drawSword(1, -15, 0, -15);
-		drawSword(2, 15, 0, -15);
-		drawSword(3, 30, 0, 0);
-		drawSword(4, -30, 0, 0);
-		drawSword(5, -45, 0, -15);
-		glEnable(GL_BLEND);
-		glDepthMask(GL_FALSE);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		if(test1==1) {
-		{//part for fack-face
-			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 0) drawRect(&rts[i]); //it must be 0
-			}
-		}
-		}
-		if(test2==1) {
-		{//part for front-face
-			
-			for(int i = 0; i < rectNum; i++) {
-				if(depthCheck[i] == 1) drawRect(&rts[i]); //it must be 1
-			}
-		}
-		}
-		glDepthMask(GL_TRUE);
-		glDisable(GL_BLEND);
-		free(depthCheck);
-	}
-	glPopMatrix();
-	glutSwapBuffers();
-}
 
 
 void reShape(int newWeight, int newHeight) {
@@ -988,124 +924,92 @@ float* getNV(float* p0, float* p1, float* p2) {
 	return ret;
 }
 
-void drawSword(int idx, float x, float y, float z) {
-	glPushMatrix();
-	{
-		glTranslatef(x, y, z);
-		int time = 5;
-		float d = 1.0 / (float)time;
-		float tv[3];
-		float* rv;
-		float sv;
-		float **pv;
-		float **before;
-		float **after;
-		float **temp;
-		int distNum = 5;
-		int polyNum = contNum * distNum;
-		float dd = 1.0f / (float)distNum;
-		int cCheck = 0;
-		temp = (float**)malloc(sizeof(float*)*polyNum);
-		for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < polyNum; i++) {
-			for(int j = 0; j < 3; j++) {
-				if(type==0) temp[i][j] = cPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
-				else temp[i][j] = bPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(        i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
-			}
+void drawSword() {
+	int numTemp = 0;
+	ofstream sword ("temp.txt");
+	int time = 5;
+	float d = 1.0 / (float)time;
+	float tv[3];
+	float* rv;
+	float sv;
+	float **pv;
+	float **before;
+	float **after;
+	float **temp;
+	int distNum = 5;
+	int polyNum = contNum * distNum;
+	float dd = 1.0f / (float)distNum;
+	int cCheck = 0;
+	temp = (float**)malloc(sizeof(float*)*polyNum);
+	for(int i = 0; i < polyNum; i++) temp[i] = (float*)malloc(sizeof(float)*3);
+	for(int i = 0; i < polyNum; i++) {
+		for(int j = 0; j < 3; j++) {
+			if(type==0) temp[i][j] = cPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
+			else temp[i][j] = bPoint(dd*(float)(i%distNum), points[1][i/distNum][j], points[1][(i/distNum+1)%contNum][j], points[1][(        i/distNum+2)%contNum][j], points[1][(i/distNum+3)%contNum][j]);
 		}
-		before = movePv(temp, scalas[1], rotats[1], posits[1], polyNum);
-		pv = (float**)malloc(sizeof(float*)*contNum);
-		for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
-		for(int i = 0; i < sectNum-3; i++) {
-			float t = 0.0f;
-			for(int j = 0; j <= time; j++) {
-				if(j==time) t = 1.0f;
-				for(int k=0; k < 3; k++) {
-					tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
-				}
-				rv = newRv(t, rotats[i], rotats[i+1], rotats[i+2], rotats[i+3]);
-				sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
-				for(int k=0; k < contNum; k++) {
-					for(int l = 0; l < 3; l++) {
-						pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
-					}
-				}
-				for(int k = 0; k < polyNum; k++) {
-					for(int l = 0; l < 3; l++) {
-						if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
-						else temp[k][l] = bPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
-					}
-				}
-				after = movePv(temp, sv, rv, tv, polyNum);
-				for(int k = 0; k < polyNum; k++) {
-					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, rts[idx].amb);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, rts[idx].dif);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rts[idx].spe);
-					glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, rts[idx].n);
-					float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
-					glBegin(GL_TRIANGLES);
-						glVertex3fv(before[(k+1)%polyNum]);
-						glVertex3fv(before[k]);
-						glVertex3fv(after[k]);
-					glEnd();
-					n = getNV(after[k], after[(k+1)%polyNum], before[(k+1)%polyNum]);
-					glNormal3f(n[0], n[1], n[2]);
-					free(n);
-					glBegin(GL_TRIANGLES);
-						glVertex3fv(after[k]);
-						glVertex3fv(after[(k+1)%polyNum]);
-						glVertex3fv(before[(k+1)%polyNum]);
-					glEnd();
-				}
-				for(int k = 0; k < contNum; k++) free(before[k]);
-				free(before);
-				free(rv);
-				before = after;
-				t+=d;
-			}
-		}
-		for(int i = 0; i < contNum; i++) {
-			free(before[i]);
-			free(pv[i]);
-			free(temp[i]);
-		}
-		free(before);
-		free(pv);
-		free(temp);
 	}
-	glPopMatrix();
+	before = movePv(temp, scalas[1], rotats[1], posits[1], polyNum);
+	pv = (float**)malloc(sizeof(float*)*contNum);
+	for(int i = 0; i < contNum; i++) pv[i] = (float*)malloc(sizeof(float)*3);
+	for(int i = 0; i < sectNum-3; i++) {
+		float t = 0.0f;
+		for(int j = 0; j <= time; j++) {
+			if(j==time) t = 1.0f;
+			for(int k=0; k < 3; k++) {
+				tv[k] = cPoint(t, posits[i][k], posits[i+1][k], posits[i+2][k], posits[i+3][k]);
+			}
+			rv = newRv(t, rotats[i], rotats[i+1], rotats[i+2], rotats[i+3]);
+			sv = cPoint(t, scalas[i], scalas[i+1], scalas[i+2], scalas[i+3]);
+			for(int k=0; k < contNum; k++) {
+				for(int l = 0; l < 3; l++) {
+					pv[k][l] = cPoint(t, points[i][k][l], points[i+1][k][l], points[i+2][k][l], points[i+3][k][l]);
+				}
+			}
+			for(int k = 0; k < polyNum; k++) {
+				for(int l = 0; l < 3; l++) {
+					if(type==0) temp[k][l] = cPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
+					else temp[k][l] = bPoint(dd*(float)(k%distNum), pv[k/distNum][l], pv[(k/distNum+1)%contNum][l], pv[(k/distNum+2)%contNum][l], pv[(k/distNum+3)%contNum][l]);
+				}
+			}
+			after = movePv(temp, sv, rv, tv, polyNum);
+			for(int k = 0; k < polyNum; k++) {
+				float *n = getNV(before[(k+1)%polyNum], before[k], after[k]);
+				cout<<n[0]<<" "<<n[1]<<" "<<n[2]<<endl;
+				sword<<n[0]<<" "<<n[1]<<" "<<n[2]<<endl;
+				sword<<before[(k+1)%polyNum][0]<<" "<<before[(k+1)%polyNum][1]<<" "<<before[(k+1)%polyNum][2]<<endl;
+				sword<<before[k][0]<<" "<<before[k][1]<<" "<<before[k][2]<<endl;
+				sword<<after[k][0]<<" "<<after[k][1]<<" "<<after[k][2]<<endl;
+				free(n);
+				n = getNV(after[k], after[(k+1)%polyNum], before[(k+1)%polyNum]);
+				sword<<n[0]<<" "<<n[1]<<" "<<n[2]<<endl;
+				sword<<after[k][0]<<" "<<after[k][1]<<" "<<after[k][2]<<endl;
+				sword<<after[(k+1)%polyNum][0]<<" "<<after[(k+1)%polyNum][1]<<" "<<after[(k+1)%polyNum][2]<<endl;
+				sword<<before[(k+1)%polyNum][0]<<" "<<before[(k+1)%polyNum][1]<<" "<<before[(k+1)%polyNum][2]<<endl;
+				free(n);
+			}
+			for(int k = 0; k < contNum; k++) free(before[k]);
+			free(before);
+			free(rv);
+			before = after;
+			t+=d;
+			numTemp = numTemp+2;
+		}
+	}
+	for(int i = 0; i < contNum; i++) {
+		free(before[i]);
+		free(pv[i]);
+		free(temp[i]);
+	}
+	free(before);
+	free(pv);
+	free(temp);
+	cout<<numTemp<<endl;
 }
+
 int main(int argc, char** argv) {
 	cout<<"please enter your file name : ";
 	string str;
 	cin >> str;
 	parser(str);
-	cout<<"please enter your rect file name : ";
-	cin >> str;
-	setRts(str);
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowPosition(50, 100);
-	glutInitWindowSize(700, 700);
-	glutCreateWindow("An Example");
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glClearDepth(1.0);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LIGHTING);
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	//glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
-	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
-	setLight();
-	glDepthFunc(GL_LESS);
-	glMatrixMode(GL_PROJECTION);
-	setView(80.0, 100.0, 80.0, 0.0, 20.0, 0.0, 0.0, 1.0, 0.0);
-	gluPerspective(45.0, 1.0, 0.1, 400.0);
-	glutDisplayFunc(myDraw);
-	glutReshapeFunc(reShape);
-	glutKeyboardFunc(myKeyboard);
-	glutMouseFunc(myMouse);
-	glutMotionFunc(myDrag);
-	glutMainLoop();
+	drawSword();
 }
