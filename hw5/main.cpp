@@ -22,8 +22,8 @@
 using namespace Magick;
 using namespace std;
 
-double refP[] = {0.0, 0.0, 200.0}; //when refP is away from window, zoom : in, reverse is zoom out
-double windowCenter[] = {0.0, 0.0, 100.0};
+double refP[] = {10.0, 0.0, 300.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {10.0, 0.0, 100.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -476,12 +476,11 @@ double interPlane(double* o, double* u, Plane* p) {
 	if(currRow==0&&currCol==146) cout<<"o : "<< o[0]<<", "<<o[1]<<", "<<o[2]<<endl;
 	if(currRow==0&&currCol==146) cout<<"u : "<< u[0]<<", "<<u[1]<<", "<<u[2]<<endl;
 	double s;
-	if(dotProduct(p->normal, u) < 0.001 && dotProduct(p->normal, u) > -0.001) {//on plane or parrallel to plane
+	if(dotProduct(p->normal, u) < 0.000001 && dotProduct(p->normal, u) > -0.000001) {//on plane or parrallel to plane
 		return 20000.0;
-		/*double temp = dotProduct(p->normal, o) + p->D;
-		if(temp == 0.0) s = 0.0;
-		//if(temp < 0.000001 && temp > -0.000001) s = 0.0;
-		else return 20000.0; //no intersection*/
+		double temp = dotProduct(p->normal, o) + p->D;
+		if(temp < 0.000001 && temp > -0.000001) s = 0.0;
+		else return 20000.0; //no intersection
 	} else {
 		s = -1.0*(p->D + dotProduct(p->normal, o)) / dotProduct(p->normal, u);
 	}
@@ -509,11 +508,13 @@ double interPlane(double* o, double* u, Plane* p) {
 		if(currRow==0&&currCol==146) cout<<"i : "<<i<<endl;
 		if(currRow==0&&currCol==146) cout<<"crossNum : "<< crossNum<<endl;
 	}
-	if(crossNum%2==0) {//even is outside. so intersection doesn't exist.
+	/*if(crossNum%2==0) {//even is outside. so intersection doesn't exist.
 		return 20000.0;
 	} else {//odds is inside, so intersection exists.
 		return s;
-	}
+	}*/ //It is mathmatically right but, we think the face is convex.
+	if(crossNum>1) return 20000.0;
+	else return s;
 }//calculate intersection points Pi, Let, Pi = o + s*u, return value is s. hypothesis : o is out of the plane.
 
 int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal) { //pInter and p0, p1 is in the same plane.
@@ -532,12 +533,12 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 	double D = calculD(p0, N);
 	if(currRow==0&&currCol==146) cout<<"N D :"<<N[0]<<", "<<N[1]<<", "<<N[2]<<", "<<D<<endl;
 	double s;
-	if(dotProduct(N, u) < 0.001 && dotProduct(N, u) > -0.001) {
-		return 0;
-		/*double temp = dotProduct(N, pInter) + D;
-		if(temp == 0.0) s = 0.0;
-		//if(temp < 0.000001 && temp > -0.0000001) s = 0.0; //on the same plane.
-		else return 0;*/
+	if(dotProduct(N, u) < 0.000001 && dotProduct(N, u) > -0.000001) {
+		//return 0;
+		double temp = dotProduct(N, pInter) + D;
+		//if(temp == 0.0) s = 0.0;
+		if(temp < 0.000001 && temp > -0.000001) s = 0.0; //on the same plane.
+		else return 0;
 	} else {
 		s = -1.0*(D + dotProduct(N, pInter)) / dotProduct(N, u);
 	}
@@ -553,7 +554,7 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 	if(dotProduct(vNew, v) < 0.0) return 0; //cross point is behind p0.
 	double dNew = length(vNew, 3);
 	if(currRow==0&&currCol==146) cout<<"dNdw : "<<dNew<<endl;
-	if(dNew < d) {
+	if(dNew <= d) {
 		return 1;
 	}
 	else return 0;
@@ -564,7 +565,7 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 //finally, if length of p0 -> pNew is bigger than 0 and shorter than length(v), it has crosspoint.
 
 void setMyObject() {
-	sphereNum = 0;
+	sphereNum = 3;
 	planeNum = 6;
 	lightNum = 1;
 	spheres = (Sphere*)malloc(sizeof(Sphere)*256);//replace 10 to sphereNum
