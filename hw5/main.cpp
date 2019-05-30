@@ -22,7 +22,7 @@
 using namespace Magick;
 using namespace std;
 
-double refP[] = {10.0, 200.0, 300.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double refP[] = {10.0, 250.0, 375.0}; //when refP is away from window, zoom : in, reverse is zoom out
 double windowCenter[] = {10.0, 60.0, 90.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
@@ -522,8 +522,8 @@ void setObject(string str) {
 	spheres[2].r = 30.0;
 	
 	spheres[0].center[0] = 0.0; spheres[0].center[1] = 0.0; spheres[0].center[2] = -50.0;
-	spheres[1].center[0] = -70.0; spheres[1].center[1] = 0.0; spheres[1].center[2] = 20.0;
-	spheres[2].center[0] = 70.0; spheres[2].center[1] = 0.0; spheres[2].center[2] = 50.0;
+	spheres[1].center[0] = -70.0; spheres[1].center[1] = 0.0; spheres[1].center[2] = 40.0;
+	spheres[2].center[0] = 75.0; spheres[2].center[1] = 0.0; spheres[2].center[2] = 55.0;
 
 	spheres[0].amb[0] = 0.0; spheres[0].amb[1] = 0.0; spheres[0].amb[2] = 0.0;
 	spheres[0].dif[0] = 0.1; spheres[0]. dif[1] = 0.35; spheres[0].dif[2] = 0.1;
@@ -535,7 +535,7 @@ void setObject(string str) {
 	
 	spheres[2].amb[0] = 0.0; spheres[2].amb[1] = 0.0; spheres[2].amb[2] = 0.0;
 	spheres[2].dif[0] = 0.8; spheres[2].dif[1] = 0.8; spheres[2].dif[2] = 0.8;
-	spheres[2].spe[0] = 0.3; spheres[2].spe[1] = 0.3; spheres[2].spe[2] = 0.3;
+	spheres[2].spe[0] = 0.6; spheres[2].spe[1] = 0.6; spheres[2].spe[2] = 0.6;
 
 	spheres[0].shi = 50.0;
 	spheres[1].shi = 20.0;
@@ -547,9 +547,9 @@ void setObject(string str) {
 	
 	spheres[0].alpha = 1.0;
 	spheres[1].alpha = 1.0;
-	spheres[2].alpha = 0.2;
+	spheres[2].alpha = 0.5;
 
-	spheres[2].nr = 1.33;
+	spheres[2].nr = 1.05;
 	//test part for sphere
 	planes = (Plane*)malloc(sizeof(Plane)*10);//replace 10 to planeNum
 	for(int i = 0; i < 6; i++) {
@@ -643,7 +643,7 @@ void setObject(string str) {
 	
 	//test part for polygon
 	lights = (Light*)malloc(sizeof(Light)*10); //replace 10 to lightNum.
-	lights[0].center[0] = 10.0; lights[0].center[1] = 1000.0; lights[0].center[2] = 0.0;
+	lights[0].center[0] = 10.0; lights[0].center[1] = 700.0; lights[0].center[2] = 0.0;
 	lights[1].center[0] = 10.0; lights[1].center[1] = 0.0; lights[1].center[2] = 700.0;
 	lights[2].center[0] = -100.0; lights[2].center[1] = 100.0; lights[2].center[2] = 130.0;
 	for(int i = 0; i < lightNum; i++) {
@@ -731,14 +731,4 @@ double* planeTexture(int idx, double* point) {//for rectangle
 	int y = (int)(v * (planes[idx].width-1));
 	double* ret = planes[idx].texture[x][y];
 	return ret;
-}
-int parallel(double* v1, double* v2) {
-	double d1 = length(v1, 3);
-	double d2 = length(v2, 3);
-	for(int i = 0; i < 3; i++) {
-		double temp = v1[i]/d1 - v2[i]/d2;
-		if(temp < 0.0001 && temp > -0.0001) continue;
-		else return 0;
-	}
-	return 1;
 }
