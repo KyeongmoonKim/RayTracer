@@ -22,8 +22,8 @@
 using namespace Magick;
 using namespace std;
 
-double refP[] = {10.0, 0.0, 300.0}; //when refP is away from window, zoom : in, reverse is zoom out
-double windowCenter[] = {10.0, 0.0, 100.0};
+double refP[] = {10.0, 150.0, 300.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {10.0, 50.0, 100.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -103,6 +103,9 @@ int normalsSize = 256;
 //for debugging
 int currRow;
 int currCol;
+
+int debugRow= -1;
+int debugCol= -1;
 
 int main(int argc, char** argv) {
 	InitializeMagick(*argv);
@@ -236,13 +239,14 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 			currIdx = i;
 		}
 	}
-	if(currRow==0&&currCol==146) cout<<"start"<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"start"<<endl;
 	for(int i = 0; i < planeNum; i++) {
-		if(currRow==0&&currCol==146) cout<<"i in color : "<<i<<endl;
+		if(currRow==debugRow&&currCol==debugCol) cout<<"i in color : "<<i<<endl;
 		if(bType==1 && bIdx == i) continue; //pass the reflexed surface
 		double tempS = interPlane(o, v, &(planes[i]));
 		if(tempS < s && tempS > 1) {
-			if(currRow==0&&currCol==146&&i>5) cout<<"###############################################################################33"<<endl;
+			//if(i>5) cout<<currRow<<", "<<currCol<<endl;
+			if(currRow==debugRow&&currCol==debugCol&&i>5) cout<<"###############################################################################33"<<endl;
 			s = tempS;
 			currIdx = i;
 			type = 1;
@@ -467,14 +471,15 @@ double interSphere(double* o, double* u, Sphere* s) {
 }//caculate intersect point Pi. Let, point Pi = o + s*u, return value is s. hyphothesis : o is out of the sphere.
 
 double interPlane(double* o, double* u, Plane* p) {
-	if(currRow==0&&currCol==146) cout<<currRow<<", "<<currCol<<endl;
-	if(currRow==0&&currCol==146) cout<<"interPlane"<<endl;
-	if(currRow==0&&currCol==146) cout<<"plane"<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<currRow<<", "<<currCol<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"interPlane"<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"plane"<<endl;
 	for(int i = 0; i < p->n; i++) {
-		if(currRow==0&&currCol==146) cout<<"vertex "<<i<<" : "<<p->vertex[i][0]<<", "<<p->vertex[i][1]<<", "<<p->vertex[i][2]<<endl;
+		if(currRow==debugRow&&currCol==debugCol) cout<<"vertex "<<i<<" : "<<p->vertex[i][0]<<", "<<p->vertex[i][1]<<", "<<p->vertex[i][2]<<endl;
 	}
-	if(currRow==0&&currCol==146) cout<<"o : "<< o[0]<<", "<<o[1]<<", "<<o[2]<<endl;
-	if(currRow==0&&currCol==146) cout<<"u : "<< u[0]<<", "<<u[1]<<", "<<u[2]<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"normal of plane : "<<p->normal[0]<<", "<<p->normal[1]<<", "<<p->normal[2]<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"o : "<< o[0]<<", "<<o[1]<<", "<<o[2]<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"u : "<< u[0]<<", "<<u[1]<<", "<<u[2]<<endl;
 	double s;
 	if(dotProduct(p->normal, u) < 0.000001 && dotProduct(p->normal, u) > -0.000001) {//on plane or parrallel to plane
 		return 20000.0;
@@ -487,7 +492,7 @@ double interPlane(double* o, double* u, Plane* p) {
 	if(s < 0.0) {
 		return 20000.0; //no intersection.
 	}
-	if(currRow==0&&currCol==146) cout<<"s : "<<s<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"s : "<<s<<endl;
 	double pInter[3];
 	for(int i = 0; i < 3; i++) pInter[i] = o[i] + s * u[i];
 	
@@ -495,43 +500,43 @@ double interPlane(double* o, double* u, Plane* p) {
 	//int time = 0;
 	int crossNum = 0;
 	double uPlane[3];
-	if(currRow==0&&currCol==146) cout<<"middle point 0 1 : ";
+	if(currRow==debugRow&&currCol==debugCol) cout<<"middle point 0 1 : ";
 	for(int i = 0; i < 3; i++) {
-		if(currRow==0&&currCol==146) cout<<(p->vertex[1][i] + p->vertex[0][i])/2 <<" ";
+		if(currRow==debugRow&&currCol==debugCol) cout<<(p->vertex[1][i] + p->vertex[0][i])/2 <<" ";
 		uPlane[i] = (p->vertex[1][i] + p->vertex[0][i])/2 - pInter[i];
 	}//uPlane : pInter -> mid(vertex[0], vertex[1]) vector.
-	if(currRow==0&&currCol==146) cout<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<endl;
 	double d = length(uPlane, 3);
 	for(int i = 0; i < 3; i++) uPlane[i] = uPlane[i]/d;
-	for(int i = 0; i < p->n; i++) {//find existence of cross point.
+	for(int i = 1; i < p->n; i++) {//find existence of cross point. orginal : 0 but, it has obviously crossPoint.
 		crossNum += crossVect(pInter, uPlane, p->vertex[i], p->vertex[(i+1)%(p->n)], p->normal);
-		if(currRow==0&&currCol==146) cout<<"i : "<<i<<endl;
-		if(currRow==0&&currCol==146) cout<<"crossNum : "<< crossNum<<endl;
+		if(currRow==debugRow&&currCol==debugCol) cout<<"i : "<<i<<endl;
+		if(currRow==debugRow&&currCol==debugCol) cout<<"crossNum : "<< crossNum<<endl;
 	}
 	/*if(crossNum%2==0) {//even is outside. so intersection doesn't exist.
 		return 20000.0;
 	} else {//odds is inside, so intersection exists.
 		return s;
 	}*/ //It is mathmatically right but, we think the face is convex.
-	if(crossNum>1) return 20000.0;
+	if(crossNum>0) return 20000.0;
 	else return s;
 }//calculate intersection points Pi, Let, Pi = o + s*u, return value is s. hypothesis : o is out of the plane.
 
 int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal) { //pInter and p0, p1 is in the same plane.
-	if(currRow==0&&currCol==146) cout<<"crossVect"<<endl;
-	if(currRow==0&&currCol==146) cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<endl;
-	if(currRow==0&&currCol==146) cout<<"p1 : "<<p1[0]<<", "<<p1[1]<<", "<<p1[2]<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"crossVect"<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"p0 : "<<p0[0]<<", "<<p0[1]<<", "<<p0[2]<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"p1 : "<<p1[0]<<", "<<p1[1]<<", "<<p1[2]<<endl;
 	double v[3];
 	for(int i = 0; i < 3; i++) v[i] = p1[i] - p0[i];
 	double d = length(v, 3);
-	if(currRow==0&&currCol==146) cout<<"d : "<<d<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"d : "<<d<<endl;
 	for(int i = 0; i < 3; i++) v[i] = v[i]/d;
-	if(currRow==0&&currCol==146) cout<<"v : "<<v[0]<<", "<<v[1]<<", "<<v[2]<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"v : "<<v[0]<<", "<<v[1]<<", "<<v[2]<<endl;
 	double* N = crossProduct(v, normal); //new normal vector, and 
 	double len = length(N, 3);
 	for(int i = 0; i < 3; i++) N[i] = N[i]/len;
 	double D = calculD(p0, N);
-	if(currRow==0&&currCol==146) cout<<"N D :"<<N[0]<<", "<<N[1]<<", "<<N[2]<<", "<<D<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"N D :"<<N[0]<<", "<<N[1]<<", "<<N[2]<<", "<<D<<endl;
 	double s;
 	if(dotProduct(N, u) < 0.000001 && dotProduct(N, u) > -0.000001) {
 		//return 0;
@@ -542,21 +547,21 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 	} else {
 		s = -1.0*(D + dotProduct(N, pInter)) / dotProduct(N, u);
 	}
-	if(currRow==0&&currCol==146) cout<<"s : "<<s<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"s : "<<s<<endl;
 	free(N);
 	if(s < 0.0) return 0; //no intersection. because cross point is behind the pInter.
 	double pNew[3];
 	for(int i = 0; i < 3; i++) pNew[i] = pInter[i] + u[i] * s; //cross Point.
-	if(currRow==0&&currCol==146) cout<<"pNew : "<<pNew[0]<<", "<<pNew[1]<<", "<<pNew[2]<<", "<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"pNew : "<<pNew[0]<<", "<<pNew[1]<<", "<<pNew[2]<<", "<<endl;
 	double vNew[3];
 	for(int i = 0; i < 3; i++) vNew[i] = pNew[i] - p0[i];
-	if(currRow==0&&currCol==146) cout<<"vNew : "<<vNew[0]<<", "<<vNew[1]<<", "<<vNew[2]<<", "<<endl;
+	if(currRow==debugRow&&currCol==debugCol) cout<<"vNew : "<<vNew[0]<<", "<<vNew[1]<<", "<<vNew[2]<<", "<<endl;
 	if(dotProduct(vNew, v) < 0.0) return 0; //cross point is behind p0.
 	double dNew = length(vNew, 3);
-	if(currRow==0&&currCol==146) cout<<"dNdw : "<<dNew<<endl;
-	if(dNew <= d) {
+	if(currRow==debugRow&&currCol==debugCol) cout<<"dNdw : "<<dNew<<endl;
+	if(dNew <= d+1.0) { //after d is error covering
 		return 1;
-	}
+	} //because of the error of floating point, sum small error
 	else return 0;
 }//find cross point exists
 //because pInter, p0, p1 is on the same plane, vector u and v has 2 case. parallel or crossing.
