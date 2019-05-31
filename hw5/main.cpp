@@ -22,8 +22,8 @@
 using namespace Magick;
 using namespace std;
 
-double refP[] = {10.0, 150.0, 300.0}; //when refP is away from window, zoom : in, reverse is zoom out
-double windowCenter[] = {10.0, 50.0, 100.0};
+double refP[] = {20.0, 230.0, 460.0}; //when refP is away from window, zoom : in, reverse is zoom out
+double windowCenter[] = {20.0, 75.0, 150.0};
 double pixels[H][W][3];
 double* pixelD(int row, int col);
 double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx); //o : reference point, v : vector, return : rgb vector
@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
 	cout<<"please enter your obj file : ";
 	string objName;
 	cin>>objName;
-	double transV[] = {10.0, 0.0, 50.0};
+	double transV[] = {-110.0, 10.0, 100.0};
 	objParser(objName, transV, 20.0);
 	cout<<"please enter your texure information file : ";
 	cin>>tfName;
@@ -344,7 +344,8 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 	
 	//reflection part.
 	//if(currRow==211&&currCol==269) cout<<"before reflecton : "<< pInter[0] <<", "<<pInter[1]<<", "<<pInter[2]<<endl;
-	/*double* reflRgb = (double*)malloc(sizeof(double)*3);
+	
+	double* reflRgb = (double*)malloc(sizeof(double)*3);
 	double vNew[3];
 	for(int i = 0; i < 3; i++) vNew[i] = 2.0 * dotProduct(N, V) * N[i] - V[i]; //reflected v vector.
 	double reflS = color(pInter, vNew, reflRgb, dist+s, type, currIdx); //reflRgb is light from vNew.
@@ -404,7 +405,7 @@ double color(double* o, double* v, double* rgb, double dist, int bType, int bIdx
 		}
 		free(T);
 		free(refrRgb);
-	}*/
+	}
 	for(int i = 0; i < 3; i++) rgb[i] = tempRgb[i];
 	return s;
 }
@@ -481,10 +482,10 @@ double interPlane(double* o, double* u, Plane* p) {
 	if(currRow==debugRow&&currCol==debugCol) cout<<"o : "<< o[0]<<", "<<o[1]<<", "<<o[2]<<endl;
 	if(currRow==debugRow&&currCol==debugCol) cout<<"u : "<< u[0]<<", "<<u[1]<<", "<<u[2]<<endl;
 	double s;
-	if(dotProduct(p->normal, u) < 0.000001 && dotProduct(p->normal, u) > -0.000001) {//on plane or parrallel to plane
+	if(dotProduct(p->normal, u) < 0.001 && dotProduct(p->normal, u) > -0.001) {//on plane or parrallel to plane
 		return 20000.0;
 		double temp = dotProduct(p->normal, o) + p->D;
-		if(temp < 0.000001 && temp > -0.000001) s = 0.0;
+		if(temp < 0.001 && temp > -0.001) s = 0.0;
 		else return 20000.0; //no intersection
 	} else {
 		s = -1.0*(p->D + dotProduct(p->normal, o)) / dotProduct(p->normal, u);
@@ -538,11 +539,11 @@ int crossVect(double* pInter, double* u, double* p0, double* p1, double *normal)
 	double D = calculD(p0, N);
 	if(currRow==debugRow&&currCol==debugCol) cout<<"N D :"<<N[0]<<", "<<N[1]<<", "<<N[2]<<", "<<D<<endl;
 	double s;
-	if(dotProduct(N, u) < 0.000001 && dotProduct(N, u) > -0.000001) {
+	if(dotProduct(N, u) < 0.001 && dotProduct(N, u) > -0.001) {
 		//return 0;
 		double temp = dotProduct(N, pInter) + D;
 		//if(temp == 0.0) s = 0.0;
-		if(temp < 0.000001 && temp > -0.000001) s = 0.0; //on the same plane.
+		if(temp < 0.001 && temp > -0.001) s = 0.0; //on the same plane.
 		else return 0;
 	} else {
 		s = -1.0*(D + dotProduct(N, pInter)) / dotProduct(N, u);
@@ -592,7 +593,7 @@ void setMyObject() {
 	
 	spheres[2].amb[0] = 0.0; spheres[2].amb[1] = 0.0; spheres[2].amb[2] = 0.0;
 	spheres[2].dif[0] = 0.8; spheres[2].dif[1] = 0.8; spheres[2].dif[2] = 0.8;
-	spheres[2].spe[0] = 0.6; spheres[2].spe[1] = 0.6; spheres[2].spe[2] = 0.6;
+	spheres[2].spe[0] = 0.4; spheres[2].spe[1] = 0.4; spheres[2].spe[2] = 0.4;
 
 	spheres[0].shi = 50.0;
 	spheres[1].shi = 20.0;
@@ -604,9 +605,9 @@ void setMyObject() {
 	
 	spheres[0].alpha = 1.0;
 	spheres[1].alpha = 1.0;
-	spheres[2].alpha = 0.5;
+	spheres[2].alpha = 0.3;
 
-	spheres[2].nr = 1.05;
+	spheres[2].nr = 1.15;
 	//test part for sphere
 	planes = (Plane*)malloc(sizeof(Plane)*256);//replace 10 to planeNum
 	for(int i = 0; i < 6; i++) {
