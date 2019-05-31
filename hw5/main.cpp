@@ -170,6 +170,9 @@ int main(int argc, char** argv) {
 			int r = (int)(pixels[i][j][0] * 255.0);
 			int g = (int)(pixels[i][j][1] * 255.0);
 			int b = (int)(pixels[i][j][2] * 255.0);
+			if(r>255) r = 255;
+			if(g>255) g = 255;
+			if(b>255) b = 255;
 			if(r<0 || g<0 || b<0) {
 				cout<<"row, col : " <<i <<", "<<j<<endl;
 				cout<<"v : "<<pixelD(i, j)[0]<<", "<<pixelD(i, j)[1]<<pixelD(i, j)[2]<<endl;
