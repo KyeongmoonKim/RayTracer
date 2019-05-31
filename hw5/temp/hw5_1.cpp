@@ -170,6 +170,9 @@ int main(int argc, char** argv) {
 			int r = (int)(pixels[i][j][0] * 255.0);
 			int g = (int)(pixels[i][j][1] * 255.0);
 			int b = (int)(pixels[i][j][2] * 255.0);
+			if(r>255) r = 255;
+			if(g>255) g = 255;
+			if(b>255) b = 255;
 			if(r<0 || g<0 || b<0) {
 				cout<<"row, col : " <<i <<", "<<j<<endl;
 				cout<<"v : "<<pixelD(i, j)[0]<<", "<<pixelD(i, j)[1]<<pixelD(i, j)[2]<<endl;
@@ -593,7 +596,7 @@ void setMyObject() {
 	
 	spheres[2].amb[0] = 0.0; spheres[2].amb[1] = 0.0; spheres[2].amb[2] = 0.0;
 	spheres[2].dif[0] = 0.8; spheres[2].dif[1] = 0.8; spheres[2].dif[2] = 0.8;
-	spheres[2].spe[0] = 0.6; spheres[2].spe[1] = 0.6; spheres[2].spe[2] = 0.6;
+	spheres[2].spe[0] = 0.4; spheres[2].spe[1] = 0.4; spheres[2].spe[2] = 0.4;
 
 	spheres[0].shi = 50.0;
 	spheres[1].shi = 20.0;
@@ -605,9 +608,9 @@ void setMyObject() {
 	
 	spheres[0].alpha = 1.0;
 	spheres[1].alpha = 1.0;
-	spheres[2].alpha = 0.5;
+	spheres[2].alpha = 0.3;
 
-	spheres[2].nr = 1.2;
+	spheres[2].nr = 1.15;
 	//test part for sphere
 	planes = (Plane*)malloc(sizeof(Plane)*256);//replace 10 to planeNum
 	for(int i = 0; i < 6; i++) {
@@ -755,9 +758,9 @@ void objParser(string str, double* trans, double scale) {
 		return;
 	}
 	int check = 0; //vt checker
-	double amb[] = {0.0, 0.0, 0.0};
-	double dif[] = {0.1, 0.1, 0.7};
-	double spe[] = {0.0, 0.0, 0.0};
+	double amb[3];
+	double dif[3];
+	double spe[3];
 	double shi = 98.0;
 	//After test, the vectros changes to pointer, and the value is in the mtl file.
 	vertexNum = 0;
@@ -829,6 +832,23 @@ void objParser(string str, double* trans, double scale) {
 			}
 			normalNum++;
 		} else if(tag.compare("usemtl")==0) {//set material
+			line = line.substr(found+1, line.length());
+			found = line.find_first_of('#');
+			if(found == string::npos) found = line.length();
+			line = line.substr(0, found);
+			if(line.compare("Bark")==0) {
+				shi = 96.078431;
+				amb[0] = 0.0; amb[1] = 0.0; amb[2] = 0.0;
+				dif[0] = 0.176206*2.0; dif[1] = 0.051816*2.0; dif[2] = 0.016055*2.0;
+				spe[0] = 0.015532; spe[1] = 0.06577; spe[2] = 0.02176;
+			} else if(line.compare("Leaves")==0) {
+				shi = 96.078431;
+				amb[0] = 0.0; amb[1] = 0.0; amb[2] = 0.0;
+				dif[0] = 0.02985*3.0; dif[1] = 0.106294*3.0; dif[2] = 0.017666*3.0;
+				spe[0] = 0.085514; spe[1] = 0.355271; spe[2] = 0.0748115;
+			} else {
+				cout << "usemtl error" << endl;
+			}
 		} else if(tag.compare("vt")==0) {
 			check = 1;
 		} else if(tag.compare("f")==0) {//part of face

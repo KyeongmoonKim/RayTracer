@@ -758,9 +758,9 @@ void objParser(string str, double* trans, double scale) {
 		return;
 	}
 	int check = 0; //vt checker
-	double amb[] = {0.0, 0.0, 0.0};
-	double dif[] = {0.1, 0.1, 0.7};
-	double spe[] = {0.0, 0.0, 0.0};
+	double amb[3];
+	double dif[3];
+	double spe[3];
 	double shi = 98.0;
 	//After test, the vectros changes to pointer, and the value is in the mtl file.
 	vertexNum = 0;
@@ -832,6 +832,23 @@ void objParser(string str, double* trans, double scale) {
 			}
 			normalNum++;
 		} else if(tag.compare("usemtl")==0) {//set material
+			line = line.substr(found+1, line.length());
+			found = line.find_first_of('#');
+			if(found == string::npos) found = line.length();
+			line = line.substr(0, found);
+			if(line.compare("Bark")==0) {
+				shi = 96.078431;
+				amb[0] = 0.0; amb[1] = 0.0; amb[2] = 0.0;
+				dif[0] = 0.176206*2.0; dif[1] = 0.051816*2.0; dif[2] = 0.016055*2.0;
+				spe[0] = 0.015532; spe[1] = 0.06577; spe[2] = 0.02176;
+			} else if(line.compare("Leaves")==0) {
+				shi = 96.078431;
+				amb[0] = 0.0; amb[1] = 0.0; amb[2] = 0.0;
+				dif[0] = 0.02985*3.0; dif[1] = 0.106294*3.0; dif[2] = 0.017666*3.0;
+				spe[0] = 0.085514; spe[1] = 0.355271; spe[2] = 0.0748115;
+			} else {
+				cout << "usemtl error" << endl;
+			}
 		} else if(tag.compare("vt")==0) {
 			check = 1;
 		} else if(tag.compare("f")==0) {//part of face
